@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React, { useEffect, useState } from "react";
 import SWhandler from "smart-widget-handler";
-import { SimplePool } from "nostr-tools";
+import { SimplePool, nip04, getPublicKey, Relay, finalizeEvent } from "nostr-tools";
 export default function SwipeZapAgent() {
     const [isUserLoading, setIsUserLoading] = useState(true);
     const [userMetadata, setUserMetadata] = useState(null);
@@ -137,9 +137,142 @@ export default function SwipeZapAgent() {
         touchStartX.current = null;
         touchEndX.current = null;
     };
-    const handleSwipeToZap = () => {
+    const getLightningAddress = async (pubkey) => {
+        // Try to get lud16 or lud06 from the profile
+        const relays = [
+            'wss://nos.lol',
+            'wss://relay.nostr.band',
+            'wss://relay.damus.io',
+            'wss://nostr.mom',
+            'wss://no.str.cr',
+        ];
+        const pool = new SimplePool();
+        for (const relay of relays) {
+            const ev = await pool.get([relay], { kinds: [0], authors: [pubkey], limit: 1 });
+            if (ev) {
+                try {
+                    const content = JSON.parse(ev.content);
+                    if (content.lud16)
+                        return content.lud16;
+                    if (content.lud06)
+                        return content.lud06;
+                }
+                catch { }
+            }
+        }
+        return null;
+    };
+    const fetchLnurlInvoice = async (lnAddress, amount) => {
+        // lnAddress: name@domain.com
+        let lnurl;
+        if (lnAddress.includes('@')) {
+            const [name, domain] = lnAddress.split('@');
+            lnurl = `https://${domain}/.well-known/lnurlp/${name}`;
+        }
+        else if (lnAddress.startsWith('lnurl1')) {
+            // lnurl is bech32 encoded, decode if needed (not implemented here)
+            return null;
+        }
+        else {
+            return null;
+        }
+        try {
+            const res = await fetch(lnurl);
+            const data = await res.json();
+            if (!data.callback)
+                return null;
+            const callbackUrl = `${data.callback}${data.callback.includes('?') ? '&' : '?'}amount=${amount * 1000}`;
+            const invoiceRes = await fetch(callbackUrl);
+            const invoiceData = await invoiceRes.json();
+            return invoiceData.pr || null;
+        }
+        catch {
+            return null;
+        }
+    };
+    // Utility to parse NWC URI
+    function parseNwcUri(uri) {
+        // Example: nostr+walletconnect://<walletPubkey>?relay=wss://relay.example.com&secret=<hex>
+        const url = new URL(uri.replace('nostr+walletconnect://', 'http://'));
+        const walletPubkey = url.pathname.replace('/', '');
+        const relay = url.searchParams.get('relay');
+        const secret = url.searchParams.get('secret');
+        return { walletPubkey, relay, secret };
+    }
+    // Get NWC URI from host client (assume userMetadata.nwc_uri)
+    const getNwcConfig = () => {
+        const nwcUri = userMetadata?.nwc_uri;
+        if (!nwcUri)
+            return null;
+        return parseNwcUri(nwcUri);
+    };
+    const sendNwcPayInvoice = async (invoice, amount) => {
+        const nwcConfig = getNwcConfig();
+        if (!nwcConfig)
+            throw new Error('No NWC config found');
+        const { walletPubkey, relay, secret } = nwcConfig;
+        if (!walletPubkey || !relay || !secret)
+            throw new Error('Invalid NWC config');
+        // Prepare event
+        const privkey = hexToBytes(secret);
+        const pubkey = getPublicKey(privkey);
+        const content = JSON.stringify({ method: 'pay_invoice', params: { invoice, amount: amount * 1000 } });
+        const encryptedContent = await nip04.encrypt(privkey, walletPubkey, content);
+        const event = {
+            kind: 23194,
+            pubkey,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [['p', walletPubkey]],
+            content: encryptedContent,
+        };
+        const finalizedEvent = finalizeEvent(event, privkey);
+        // Connect to relay
+        const relayConn = new Relay(relay);
+        await relayConn.connect();
+        // Listen for response
+        return new Promise((resolve, reject) => {
+            let timeout = setTimeout(() => { relayConn.close(); reject('NWC payment timed out'); }, 15000);
+            relayConn.subscribe([{ kinds: [23195], authors: [walletPubkey], '#p': [pubkey] }], {
+                onevent: async (ev) => {
+                    clearTimeout(timeout);
+                    relayConn.close();
+                    const decrypted = await nip04.decrypt(privkey, walletPubkey, ev.content);
+                    const resp = JSON.parse(decrypted);
+                    if (resp.error)
+                        reject(resp.error.message || 'NWC payment failed');
+                    else
+                        resolve(resp.result);
+                }
+            });
+            relayConn.publish(finalizedEvent);
+        });
+    };
+    const handleSwipeToZap = async () => {
         setNotification(null);
-        // Build zap event (kind 9735)
+        const post = posts[currentIndex];
+        const recipientPubkey = post.pubkey;
+        // 1. Try to get lightning address
+        const lnAddress = await getLightningAddress(recipientPubkey);
+        if (!lnAddress) {
+            setNotification({ type: 'error', message: 'No Lightning address found for this user.' });
+            return;
+        }
+        // 2. Request invoice
+        const invoice = await fetchLnurlInvoice(lnAddress, zapAmount);
+        if (!invoice) {
+            setNotification({ type: 'error', message: 'Failed to fetch Lightning invoice.' });
+            return;
+        }
+        // 3. Try NWC (NIP-47) payment via host client
+        try {
+            await sendNwcPayInvoice(invoice, zapAmount);
+            setNotification({ type: 'success', message: 'Zap sent via NWC!' });
+        }
+        catch (err) {
+            setNotification({ type: 'error', message: String(err) });
+            return;
+        }
+        // 4. (Optional) Still publish zap event to Nostr
         const zapEvent = {
             kind: 9735,
             content: `Zap via swipe!`,
@@ -150,23 +283,6 @@ export default function SwipeZapAgent() {
             ],
         };
         SWhandler.client.requestEventPublish(zapEvent, userMetadata?.host_origin);
-        // Listen for zap result (success/failure)
-        const zapTimeout = setTimeout(() => {
-            setNotification({ type: 'error', message: 'Zap failed or timed out.' });
-        }, 8000);
-        const zapListener = SWhandler.client.listen((event) => {
-            if (event.kind === "nostr-event") {
-                clearTimeout(zapTimeout);
-                setNotification({ type: 'success', message: 'Zap sent successfully!' });
-                SWhandler.client.sendContext(event.data, event.data?.host_origin);
-                zapListener.close();
-            }
-            if (event.kind === "err-msg") {
-                clearTimeout(zapTimeout);
-                setNotification({ type: 'error', message: event.data || 'Zap failed.' });
-                zapListener.close();
-            }
-        });
     };
     // Helper: extract URLs from a string
     const extractUrls = (text) => {
@@ -263,4 +379,14 @@ export default function SwipeZapAgent() {
                             position: 'static',
                             display: 'block',
                         }, children: notification.message }))] })] }));
+}
+// Utility: hex string to Uint8Array
+function hexToBytes(hex) {
+    if (hex.startsWith('0x'))
+        hex = hex.slice(2);
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    return bytes;
 }
