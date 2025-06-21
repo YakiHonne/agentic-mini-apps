@@ -1,0 +1,3 @@
+<Location "/.well-known/widget.json">
+  Header set Access-Control-Allow-Origin "https://yakihonne.com"
+</Location>
