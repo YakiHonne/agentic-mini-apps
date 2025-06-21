@@ -1,0 +1,12 @@
+{
+  "pubkey": "06830f6cb5925bd82cca59bda848f0056666dff046c5382963a997a234da40c5",
+  "widget": {
+    "title": "Swipestr",
+    "appUrl": "https://swipestr.turiz.space",
+    "iconUrl": "https://swipestr.turiz.space/icon.jpeg",
+    "imageUrl": "https://swipestr.turiz.space/icon.jpeg",
+    "buttonTitle": "Open Swipestr",
+    "description": "Swipe, zap, and discover Nostr. Swipestr is a modern, social zap feed for Nostr.",
+    "tags": ["nostr", "zap", "feed", "social", "goals"]
+  }
+}
