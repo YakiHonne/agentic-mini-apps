@@ -1,0 +1,11 @@
+{
+  "pubkey": "916ca53f86e8e1cc79322d82ac40a4edf2b012a0d6cb86f573a407675b5b1e96",
+  "widget": {
+    "title": "bullishCalc",
+    "appUrl": "https://bullishcalc.vercel.app",
+    "iconUrl": "https://bullishcalc.vercel.app/bullishcalc-icon.png",
+    "imageUrl": "https://bullishcalc.vercel.app/bullishcalc-icon.png",
+    "buttonTitle": "Launch",
+    "tags": []
+  }
+}

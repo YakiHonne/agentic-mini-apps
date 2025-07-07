@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="lightning" content="lnurlp:bullish@getalby.com" />
+
+    <title>bullishCalc</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="bullishcalc-icon.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" href="bullishcalc-icon.png" sizes="512x512">
+    <link rel="manifest" href="manifest.json">
+
+    <script type="module">
+
+        // Force dark mode for Bitcoin Connect
+        window.bcDarkMode = 'class';
+        document.documentElement.classList.add('dark');
+
+    </script>
+
+    <style>
+
+        html {
+            --bc-color-brand: #ff9900;
+            --bc-color-brand-dark: #ff9900;
+            /* use a different brand color in dark mode */
+            --bc-brand-mix: 100%;
+            /* how much to mix the brand color with default foreground color */
+            --bc-color-brand-button-text: #ffffff;
+            /* override text color for primary button. Normally this is based on the luminance of the brand color */
+            --bc-color-brand-button-text-dark: #ffffff;
+            /* override text color for primary button in dark mode. Normally this is based on the luminance of the brand color in dark mode */
+        }
+
+        @font-face {
+            font-family: 'DS-DIGIB';
+            src: url('DS-DIGIB.TTF') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        .header-image {
+            display: block;
+            width: 300px;
+            margin: 0 auto;
+            /* Centers the image horizontally */
+        }
+
+        body {
+            background-color: #000000;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 10px;
+        }
+
+        h1 {
+            color: white;
+            margin-top: 20px;
+        }
+
+        .input-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        .unit-select {
+            background-color: #FF9900;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            padding: 9px;
+            border: 1px solid #c57600;
+            border-radius: 3px 0px 0px 3px;
+            height: 38px;
+            width: 169px;
+            min-width: 169px;
+            box-sizing: border-box;
+            margin: 1px;
+            appearance: none;
+            /* Remove default styling */
+            -webkit-appearance: none;
+            /* Remove default styling for WebKit browsers */
+            -moz-appearance: none;
+            /* Remove default styling for Mozilla browsers */
+        }
+
+        .currency-select {
+            background-color: #FF9900;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            padding: 9px;
+            border: 1px solid #c57600;
+            border-radius: 3px 0px 0px 3px;
+            height: 38px;
+            width: 169px;
+            min-width: 169px;
+            box-sizing: border-box;
+            margin: 1px;
+            appearance: none;
+            /* Remove default styling */
+            -webkit-appearance: none;
+            /* Remove default styling for WebKit browsers */
+            -moz-appearance: none;
+            /* Remove default styling for Mozilla browsers */
+        }
+
+        /* Center the text in the dropdown options for Safari iOS */
+        @supports (-webkit-touch-callout: none) {
+            select {
+                text-align-last: center;
+                /* Center the text for the last line */
+                text-align: center;
+                /* Center the text */
+            }
+
+            option {
+                text-align: center;
+                /* Center the text in options for all browsers */
+            }
+        }
+
+        input {
+            background-color: #4b2d00;
+            color: white;
+            font-family: 'DS-DIGIB', sans-serif;
+            font-size: 19px;
+            padding: 8px 20px 8px 8px;
+            margin: 1px;
+            width: 160px;
+            box-sizing: border-box;
+            border-radius: 0px 3px 3px 0px;
+        }
+
+        option {
+            text-align: center;
+            /* Center the text in options for all browsers */
+        }
+
+        /* Removes up/down arrows from inputs */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        a {
+            color: #FF9900;
+            text-decoration: none;
+            /* Remove underlines from links */
+        }
+
+        .lightning-bolt-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 21px;
+            color: #FFD700;
+            /* Color for the lightning bolt icon */
+            text-decoration: none;
+            z-index: 999;
+            /* Set a high z-index value to ensure the link is clickable */
+        }
+
+        #version {
+            font-size: 12px;
+            color: gray;
+            text-align: center;
+            padding: 0px;
+            margin-top: 4px;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 12px;
+            padding: 5px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        #refresh-icon {
+            cursor: pointer;
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        #refresh-icon:hover {
+            transform: scale(1.1);
+            /* Scale up on hover */
+        }
+
+        #refresh-icon:active {
+            transform: scale(0.9);
+            /* Scale down when clicked */
+        }
+
+        .fade {
+            animation: fade 0.5s ease-in-out;
+        }
+
+        @keyframes fade {
+            0% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Donation modal */
+
+        body.modal-open {
+            overflow: hidden;
+            /* Disable scrolling */
+            pointer-events: none;
+            /* Disable pointer events for the background */
+        }
+
+        body.modal-open .modal {
+            pointer-events: auto;
+            /* Enable pointer events for the modal */
+        }
+
+        body.modal-open::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Semi-transparent overlay */
+            z-index: 0;
+            /* Behind the modal */
+        }
+
+        .modal {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            /* Stay in place */
+            z-index: 1;
+            /* Sit on top */
+            left: 0;
+            bottom: 69px;
+            width: 100%;
+            /* Full width */
+            height: auto;
+            /* Auto height */
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Black w/ opacity */
+        }
+
+        .modal-content {
+            background-color: black;
+            /* Black background */
+            border: 5px inset #ff9900;
+            /* Border color */
+            margin: 20px auto;
+            /* Margin from the top and centered */
+            padding: 20px;
+            width: 300px;
+            /* Could be more or less, depending on screen size */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            /* For positioning the close button */
+        }
+
+        .close-button {
+            color: #ff9900;
+            font-size: 15px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+        }
+
+        .modal-header-title {
+            color: #ffffff;
+            /* Title color */
+            text-align: center;
+            /* Center the title */
+            margin: 0px;
+            margin-top: -5px;
+            /* No margin */
+        }
+
+        .button-container {
+            display: flex;
+            /* Use flexbox for layout */
+            justify-content: space-between;
+            /* Space between buttons */
+            margin-top: 10px;
+            /* Space above the button container */
+        }
+
+        .preset-button {
+            color: #000000;
+            background-color: #ff9900;
+            /* Button color */
+            border: 3px inset #000000;
+            /* Border style */
+            padding: 10px;
+            cursor: pointer;
+            flex: 1;
+            /* Equal size for all buttons */
+            margin: 0 5px;
+            /* Space between buttons */
+        }
+
+        .modal-body {
+            margin-top: 10px;
+            /* Space above the input */
+        }
+
+        #custom-amount {
+            width: 100%;
+            /* Full width */
+            padding: 5px;
+            /* Padding inside the input */
+            margin-top: 10px;
+            /* Space above the input */
+        }
+
+        .modal-footer {
+            margin-top: 10px;
+            /* Space above the footer */
+        }
+
+        #zap-button {
+            color: #000000;
+            background-color: #ff9900;
+            /* Button color */
+            border: 3px inset #000000;
+            /* Border style */
+            width: 100%;
+            /* Full width */
+            padding: 10px;
+            /* Padding inside the button */
+            cursor: pointer;
+            /* Pointer cursor on hover */
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <img src="bullishcalc-header.png" class="header-image" width="300" alt="Banner">
+
+    <div class="input-container">
+        <select class="unit-select" id="unit_select">
+            <option value="sats">sats</option>
+            <option value="bitcoin">BTC</option>
+        </select>
+        <input type="number" id="unit_input" class="input-field" inputmode="decimal">
+    </div>
+
+    <div class="input-container">
+        <select class="currency-select" id="currency_select">
+            <option value="USD">US Dollar (USD)</option>
+            <option value="JPY">Japanese Yen (JPY)</option>
+            <option value="CNY">Chinese Yuan (CNY)</option>
+            <option value="KRW">Korean Won (KRW)</option>
+            <option value="THB">Thai Baht (THB)</option>
+            <option value="CAD">Canadian Dollar (CAD)</option>
+            <option value="AUD">Australian Dollar (AUD)</option>
+            <option value="GBP">Pound Sterling (GBP)</option>
+            <option value="CHF">Swiss Franc (CHF)</option>
+            <option value="EUR">Euro (EUR)</option>
+        </select>
+        <input type="number" id="currency_input" class="input-field" inputmode="decimal">
+    </div>
+
+    <p id="exchange-rate" style="font-size: 14px; margin-top: 21px; margin-bottom: 5px;">Fetching exchange rate...</p>
+    <div style="position: relative; text-align: center;">
+        <p id="last_updated" style="font-size: 10px; margin: 0; display: inline-block;">Last Updated: </p>
+        <div id="refresh-icon" style="position: absolute; left: calc(50% +69px); top: -3px; cursor: pointer; font-size: 21px;">⟳</div>
+    </div>
+
+    <!-- Lightning Bolt icon to start donation -->
+    <button id="donate" class="lightning-bolt-icon" style="background-color: transparent; border: none;">⚡️</button>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span id="close-modal" class="close-button">X</span>
+            <h2 class="modal-header-title">Donate to bullishCalc</h2>
+            <div class="button-container">
+                <button class="preset-button" data-amount="21">21</button>
+                <button class="preset-button" data-amount="210">210</button>
+                <button class="preset-button" data-amount="2100">2100</button>
+            </div>
+            <div class="modal-body">
+                <input type="number" id="custom-amount" placeholder="Enter custom amount" />
+            </div>
+            <div class="modal-footer">
+                <button id="zap-button">Zap</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Made with 🐂 by <a href="https://thebullishbitcoiner.com" target="_blank">thebullishbitcoiner</a>
+        <p id="version">v0.0.85</p>
+    </footer>
+
+    <script type="module">
+
+        // Import bitcoin-connect with error handling
+        let nwc, launchPaymentModal;
+        
+        try {
+            const nwcModule = await import("https://esm.sh/@getalby/sdk@latest");
+            nwc = nwcModule.nwc;
+        } catch (error) {
+            console.warn("Failed to load NWC SDK:", error);
+        }
+        
+        try {
+            const bitcoinConnectModule = await import('https://esm.sh/@getalby/bitcoin-connect@latest');
+            launchPaymentModal = bitcoinConnectModule.launchPaymentModal;
+        } catch (error) {
+            console.warn("Failed to load Bitcoin Connect:", error);
+        }
+
+        const NWC_CONNECTION_SECRET =
+            "nostr+walletconnect://1e51f671436ce11be63ae31349c646d7d46bdbafb2459fea877952e27730e8d8?relay=wss://relay.getalby.com/v1&secret=0388c4c6910a984be556593ff5575362764ab622ab907d31160905269f860241&lud16=bullish@getalby.com";
+
+        const handleDonation = async (sats) => {
+            // Check if required modules are loaded
+            if (!nwc || !launchPaymentModal) {
+                alert("Payment functionality is currently unavailable. Please try again later.");
+                return false;
+            }
+            
+            try {
+                const client = new nwc.NWCClient({
+                    nostrWalletConnectUrl: NWC_CONNECTION_SECRET,
+                });
+
+                const transaction = await client.makeInvoice({
+                    amount: sats * 1000, // Convert to millisatoshis
+                    description: "Donation to bullishCalc",
+                });
+
+                const { setPaid } = await launchPaymentModal({
+                    invoice: transaction.invoice,
+                    onPaid: () => {
+                        clearInterval(checkPaymentInterval);
+                    },
+                });
+
+                // Set up payment check interval
+                const checkPaymentInterval = setInterval(async () => {
+                    try {
+                        const polledTransaction = await client.lookupInvoice({
+                            invoice: transaction.invoice,
+                        });
+
+                        if (polledTransaction.preimage) {
+                            setPaid({
+                                preimage: polledTransaction.preimage,
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error checking payment status:", error);
+                    }
+                }, 1000);
+
+                // Clean up interval after 5 minutes (300000ms) if payment not received
+                setTimeout(() => {
+                    clearInterval(checkPaymentInterval);
+                }, 300000);
+            } catch (error) {
+                console.error("Error processing donation:", error);
+                alert("Payment failed. Please try again.");
+                return false; // Return false if there was an error
+            }
+        }; // End handleDonation
+
+        document.getElementById("donate").addEventListener("click", function () {
+            document.getElementById("custom-amount").value = ""; // Clear the input field
+            document.getElementById("modal").style.display = "block";
+            document.body.classList.add("modal-open"); // Add class to disable background
+        });
+
+        document.getElementById("refresh-icon").addEventListener("click", function () {
+            fetchExchangeRates();
+        });
+
+        document.querySelectorAll('.preset-button').forEach(button => {
+            button.addEventListener('click', function () {
+                const amount = this.getAttribute('data-amount');
+                document.getElementById("custom-amount").value = amount; // Fill custom amount field
+            });
+        });
+
+        document.getElementById("zap-button").addEventListener("click", function () {
+            const input = document.getElementById("custom-amount").value;
+
+            if (input) {
+                const sats = parseInt(input, 10);
+                if (!isNaN(sats) && sats > 0) {
+                    handleDonation(sats); // Call handleDonation only when Zap is clicked
+                    closeModal();
+                } else {
+                    alert("Please enter a valid positive number of sats.");
+                }
+            }
+        });
+
+        document.getElementById("close-modal").addEventListener("click", closeModal);
+
+        function closeModal() {
+            document.getElementById("modal").style.display = "none";
+            document.body.classList.remove("modal-open"); // Remove class to enable background
+        }
+
+        // Fetch the exchange rates immediately, then every 21 seconds 
+        fetchExchangeRates();
+        const intervalId = setInterval(fetchExchangeRates, 21000);
+
+        // Retrieve the saved currency from local storage
+        var savedCurrency = localStorage.getItem("selectedCurrency");
+
+        // Set the selected currency (in the dropdown) based on the saved value
+        if (savedCurrency) {
+            document.getElementById("currency_select").value = savedCurrency;
+        }
+
+        document.getElementById("currency_select").addEventListener("change", function () {
+            updateExchangeRate();
+            recalculateConversionFromBTC();
+
+            // Save the selected currency to local storage
+            var selectedCurrency = this.value;
+            localStorage.setItem("selectedCurrency", selectedCurrency);
+        });
+
+        document.getElementById("unit_select").addEventListener("change", function () {
+            updateExchangeRate();
+            recalculateConversionToBTC();
+        });
+
+        document.getElementById("unit_input").addEventListener("input", function () {
+            var bitcoin = parseFloat(this.value);
+            var selectedCurrency = document.getElementById("currency_select").value;
+            calculateCurrencyFromBTC(bitcoin, selectedCurrency);
+        });
+
+        document.getElementById("currency_input").addEventListener("input", function () {
+            var units = parseFloat(this.value);
+            var selectedCurrency = document.getElementById("currency_select").value;
+            calculateBitcoinFromCurrency(units, selectedCurrency);
+        });
+
+        // Select all content when clicking into units input
+        document.getElementById("unit_input").addEventListener("click", function () {
+            this.select();
+        });
+
+        // Select all content when clicking into currency input
+        document.getElementById("currency_input").addEventListener("click", function () {
+            this.select();
+        });
+
+        if (!document.getElementById('currency_input').value) { // Check if the input is blank or null
+            document.getElementById('currency_input').value = '1'; // Set the default value
+            var selectedCurrency = document.getElementById("currency_select").value;
+            calculateBitcoinFromCurrency(1, selectedCurrency);
+        }
+
+        //Gets available exchange rates from blockchain API and saves it to cache
+        function fetchExchangeRates() {
+            fetch('https://blockchain.info/ticker')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const timestamp = new Date(); // Get current timestamp in UTC
+                    var formattedTimestamp = getFormattedTimestamp(timestamp);
+                    localStorage.setItem('exchangeRates', JSON.stringify(data));
+                    localStorage.setItem('exchangeRatesTimestamp', formattedTimestamp);
+                    console.log('Exchange rates fetched and stored in local storage.');
+                    updateExchangeRate();
+
+                    // Recalculate BTC amount from currency units
+                    if (document.getElementById('currency_input').value) { // Check if the input is *not* blank or null
+                        var selectedCurrency = document.getElementById("currency_select").value;
+                        calculateBitcoinFromCurrency(document.getElementById('currency_input').value, selectedCurrency);
+                    }
+                })
+                .catch(error => {
+                    console.error('There was a problem fetching and storing the ticker data:', error.message);
+                });
+        }
+
+        function getFormattedTimestamp(date) {
+            // Use UTC methods to get the date components
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const year = date.getUTCFullYear();
+            const hour = String(date.getUTCHours()).padStart(2, '0');
+            const minute = String(date.getUTCMinutes()).padStart(2, '0');
+            const second = String(date.getUTCSeconds()).padStart(2, '0');
+
+            // Format the timestamp in UTC
+            const formattedTimestamp = `${month}/${day}/${year} ${hour}:${minute}:${second} UTC`;
+            return formattedTimestamp;
+        }
+
+        function showTimeOnlyIfToday(timestamp) {
+            const storedDate = new Date(timestamp);
+            const currentDate = new Date();
+
+            // Use UTC methods to get the date components
+            const storedDay = storedDate.getUTCDate();
+            const storedMonth = storedDate.getUTCMonth();
+            const storedYear = storedDate.getUTCFullYear();
+
+            const currentDay = currentDate.getUTCDate();
+            const currentMonth = currentDate.getUTCMonth();
+            const currentYear = currentDate.getUTCFullYear();
+
+            if (storedDay === currentDay && storedMonth === currentMonth && storedYear === currentYear) {
+                // Display time only if the stored date is today
+                const hour = storedDate.getUTCHours();
+                const minute = String(storedDate.getUTCMinutes()).padStart(2, '0');
+                const second = String(storedDate.getUTCSeconds()).padStart(2, '0'); // Get seconds
+
+                // Format the time to include seconds in 24-hour format
+                const formattedTime = `${(hour % 12 || 12)}:${minute}:${second} UTC`;
+                return formattedTime;
+            } else {
+                // If the stored date is not today, return an empty string or another default value
+                return timestamp;
+            }
+        }
+
+        // This function is called when a selection is changed in the GUI (get exchange rate of the selected currency and update the label)
+        function updateExchangeRate() {
+            var selectedCurrency = document.getElementById("currency_select").value;
+            var cachedRates = JSON.parse(localStorage.getItem('exchangeRates'));
+            var lastUpdated = localStorage.getItem('exchangeRatesTimestamp');
+            if (cachedRates) {
+                var exchangeRate = cachedRates[selectedCurrency].last;
+                document.getElementById("exchange-rate").textContent = "1 BTC = " + formatCurrency(exchangeRate, selectedCurrency);
+                document.getElementById("last_updated").textContent = "Last Updated: " + showTimeOnlyIfToday(lastUpdated);
+            }
+        }
+
+        // Function to format number as currency
+        function formatCurrency(amount, currency) {
+            return amount.toLocaleString('en-US', { style: 'currency', currency: currency, minimumFractionDigits: 2 });
+        }
+
+        function getExchangeRateFromCache(selectedCurrency) {
+            const cachedRates = JSON.parse(localStorage.getItem('exchangeRates'));
+            if (cachedRates) {
+                var exchangeRate = cachedRates[selectedCurrency].last;
+                return exchangeRate;
+            }
+            return null;
+        }
+
+        function calculateCurrencyFromBTC(bitcoinAmount, selectedCurrency) {
+            var btcToCurrency = getExchangeRateFromCache(selectedCurrency);
+            var units;
+
+            // Check if the selected unit is "sats" or "BTC"
+            if (document.getElementById("unit_select").value === "sats") {
+                units = (bitcoinAmount / 100000000) * btcToCurrency;
+            } else {
+                units = bitcoinAmount * btcToCurrency;
+            }
+
+            // Check if units are less than 1/100
+            if (units < 1 / 100) {
+                // Convert units to a string
+                var unitsString = units.toString();
+
+                // Get the numbers after the decimal
+                var parts = unitsString.split('.');
+                var numbersAfterDecimal = parts[1] || "";
+
+                // Get index of the first non-zero digit
+                var index = numbersAfterDecimal.search(/[^0]/);
+
+                // If there's a non-zero digit, show it
+                if (index >= 0) {
+                    document.getElementById("currency_input").value = units.toFixed(index + 1);
+                } else {
+                    // If all digits are zero, show "0.00"
+                    document.getElementById("currency_input").value = "0.00";
+                }
+            } else {
+                // Show the units with two decimal places as usual
+                document.getElementById("currency_input").value = units.toFixed(2);
+            }
+        }
+
+        function calculateBitcoinFromCurrency(currencyAmount, selectedCurrency) {
+            var btcToCurrency = getExchangeRateFromCache(selectedCurrency);
+            var bitcoinOrSats;
+
+            // Check if the selected unit is "sats" or "BTC"
+            if (document.getElementById("unit_select").value === "sats") {
+                bitcoinOrSats = (currencyAmount / btcToCurrency) * 100000000; // Calculate sats
+                document.getElementById("unit_input").value = bitcoinOrSats.toFixed(0);
+            } else {
+                bitcoinOrSats = currencyAmount / btcToCurrency; // Calculate BTC
+                document.getElementById("unit_input").value = bitcoinOrSats.toFixed(8);
+            }
+        }
+
+        // Recalculate conversion when BTC input value changes
+        function recalculateConversionFromBTC() {
+            // Get selected unit and amount
+            var selectedUnit = document.getElementById("unit_select").value;
+            var unitAmount = parseFloat(document.getElementById("unit_input").value);
+
+            // Get selected currency and amount
+            var selectedCurrency = document.getElementById("currency_select").value;
+
+            // If either input is not a number, don't do anything
+            if (!isNaN(unitAmount)) {
+                calculateCurrencyFromBTC(unitAmount, selectedCurrency);
+            }
+        }
+
+        // Recalculate conversion when currency input value or unit selection changes
+        function recalculateConversionToBTC() {
+            // Get selected unit and amount
+            var selectedUnit = document.getElementById("unit_select").value;
+            var unitAmount = parseFloat(document.getElementById("unit_input").value);
+
+            // Get selected currency and amount
+            var selectedCurrency = document.getElementById("currency_select").value;
+            var currencyAmount = parseFloat(document.getElementById("currency_input").value);
+
+            // If either input is not a number, don't do anything
+            if (!isNaN(unitAmount) || !isNaN(currencyAmount)) {
+                calculateBitcoinFromCurrency(currencyAmount, selectedCurrency);
+            }
+        }
+
+    </script>
+
+</body>
+
+</html>
