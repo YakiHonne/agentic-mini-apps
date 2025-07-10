@@ -94,7 +94,7 @@ export default function Home() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col flex-1 min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative"
+      className="flex flex-col flex-1 min-h-[80vh] bg-gradient-to-br from-background via-background to-primary/5 relative"
     >
       <Navbar user={user} />
 
