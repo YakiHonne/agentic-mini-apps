@@ -1,0 +1,16 @@
+{
+  "pubkey": "05709da0506b0d6d5644e47f972a82122f13c411ff255144f4ebbfb3ad152b96",
+  "widget": {
+    "title": "Nebulus",
+    "appUrl": "https://nebulus.vercel.app",
+    "iconUrl": "https://image.nostr.build/c841abe26941af7daeb2caffda5a2780e3a1de3b32198b364e28a335f0f8c5b0.png",
+    "imageUrl": "https://image.nostr.build/7c6a1b03e12555cabcad08daefdace55b59d454ec6e1aa4bda35cb41bdbd9fea.png",
+    "buttonTitle": "Start Now",
+    "tags": [
+      "ai",
+      "notes",
+      "decentralized",
+      "nebulus"
+    ]
+  }
+}
