@@ -7,7 +7,7 @@ import PostUpdateModal from "./PostUpdateModal";
 import { addHabit, setCurrentHabit } from "../Store/habitTrackerSlice";
 import { addToast } from "../Store/toastSlice";
 
-export default function HabitTracker() {
+export default function HabitTracker({ userData, hostUrl }) {
   const dispatch = useDispatch();
   const { habits, loading } = useSelector((state) => state.habitTracker);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -24,6 +24,7 @@ export default function HabitTracker() {
       lastCompletedAt: null,
       stakingAmount: habitData.stakingAmount || 0,
       status: "active",
+      userId: userData?.pubkey || "anonymous",
     };
 
     dispatch(addHabit(newHabit));
@@ -149,6 +150,8 @@ export default function HabitTracker() {
       {showPostModal && selectedHabit && (
         <PostUpdateModal
           habit={selectedHabit}
+          userData={userData}
+          hostUrl={hostUrl}
           onClose={() => {
             setShowPostModal(false);
             setSelectedHabit(null);
