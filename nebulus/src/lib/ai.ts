@@ -6,6 +6,35 @@ const openai = new OpenAI({
   baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
 });
 
+let requestQueue: Promise<any> = Promise.resolve();
+
+/**
+ * Enqueue a function to ensure sequential execution of requests.
+ */
+function queuedCall<T>(fn: () => Promise<T>): Promise<T> {
+  const resPromise = requestQueue.then(() => fn());
+  requestQueue = resPromise.catch(() => undefined);
+  return resPromise;
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+async function callWithRetry<T>(fn: () => Promise<T>, retries = 3, backoff = 1000): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: any) {
+    const status = err.status || err.statusCode || (err.code === '429' ? 429 : null)
+                || (typeof err.message === 'string' && err.message.includes('429') ? 429 : null);
+    if (retries > 0 && status === 429) {
+      console.warn(`Rate limit hit, retrying in ${backoff}ms... (${retries} retries left)`);
+      await sleep(backoff);
+      return callWithRetry(fn, retries - 1, backoff * 2);
+    }
+    throw err;
+  }
+}
+
 /**
  * Cleans up Nostr note content to make it more suitable for AI processing.
  * Removes URLs, hashtags, and excessive whitespace.
@@ -34,7 +63,7 @@ export async function summarizeContent(content: string): Promise<string> {
   }
 
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await callWithRetry(() => openai.chat.completions.create({
       model: "gemini-2.0-flash",
       messages: [
         {
@@ -48,7 +77,7 @@ export async function summarizeContent(content: string): Promise<string> {
       ],
       temperature: 0.2,
       max_tokens: 200,
-    });
+    }));
 
     const summary = completion.choices[0]?.message?.content?.trim() || "Could not generate summary.";
     return summary;
@@ -66,7 +95,7 @@ export async function summarizeContent(content: string): Promise<string> {
  */
 export async function expandQuery(topic: string): Promise<string[]> {
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await callWithRetry(() => openai.chat.completions.create({
       model: "gemini-2.0-flash",
       messages: [
         {
@@ -80,7 +109,7 @@ export async function expandQuery(topic: string): Promise<string[]> {
       ],
       temperature: 0.3,
       max_tokens: 100,
-    });
+    }));
 
     const response = completion.choices[0]?.message?.content?.trim();
     if (!response) return [topic];
@@ -126,7 +155,7 @@ export async function performDeepAnalysis(
       events.map(async (event) => {
         const summary = await summarizeContent(event.content);
         
-        const categoryResponse = await openai.chat.completions.create({
+        const categoryResponse = await callWithRetry(() => openai.chat.completions.create({
           model: "gemini-2.0-flash",
           messages: [
             {
@@ -140,7 +169,7 @@ export async function performDeepAnalysis(
           ],
           temperature: 0.1,
           max_tokens: 20,
-        });
+        }));
 
         const category = categoryResponse.choices[0]?.message?.content?.trim() || "General";
 
@@ -180,7 +209,7 @@ Please provide a JSON response with the following structure:
   ]
 }`;
 
-    const analysisCompletion = await openai.chat.completions.create({
+    const analysisCompletion = await callWithRetry(() => openai.chat.completions.create({
       model: "gemini-2.0-flash",
       messages: [
         {
@@ -194,7 +223,7 @@ Please provide a JSON response with the following structure:
       ],
       temperature: 0.2,
       max_tokens: 1500,
-    });
+    }));
 
     let analysis;
     try {
