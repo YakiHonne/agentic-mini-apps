@@ -127,7 +127,7 @@ export async function performDeepAnalysis(
         const summary = await summarizeContent(event.content);
         
         const categoryResponse = await openai.chat.completions.create({
-          model: "gemini-2.0-flash",
+          model: "gemini-1.5-flash",
           messages: [
             {
               role: "system",
