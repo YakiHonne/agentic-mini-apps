@@ -35,7 +35,7 @@ export async function summarizeContent(content: string): Promise<string> {
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gemini-2.0-flash",
+      model: "gemini-1.5-flash",
       messages: [
         {
           role: "system",
@@ -67,7 +67,7 @@ export async function summarizeContent(content: string): Promise<string> {
 export async function expandQuery(topic: string): Promise<string[]> {
   try {
     const completion = await openai.chat.completions.create({
-      model: "gemini-2.0-flash",
+      model: "gemini-1.5-flash",
       messages: [
         {
           role: "system",
@@ -86,7 +86,7 @@ export async function expandQuery(topic: string): Promise<string[]> {
     if (!response) return [topic];
 
     const expandedTerms = response.split(',').map(term => term.trim()).filter(term => term.length > 0);
-    return [topic, ...expandedTerms].slice(0, 6); // Limit to 6 terms including original
+    return [topic, ...expandedTerms].slice(0, 6);
 
   } catch (error) {
     console.error("Error expanding query:", error);
@@ -122,12 +122,10 @@ export async function performDeepAnalysis(
   };
 }> {
   try {
-    // First, generate individual summaries and categorize content
     const enhancedEvents = await Promise.all(
       events.map(async (event) => {
         const summary = await summarizeContent(event.content);
         
-        // Categorize content
         const categoryResponse = await openai.chat.completions.create({
           model: "gemini-2.0-flash",
           messages: [
@@ -154,7 +152,6 @@ export async function performDeepAnalysis(
       })
     );
 
-    // Perform comprehensive analysis
     const analysisPrompt = `
 Analyze these ${enhancedEvents.length} Nostr posts about "${originalTopic}" and provide a comprehensive research report.
 
@@ -228,7 +225,6 @@ Please provide a JSON response with the following structure:
       };
     }
 
-    // Calculate sentiment breakdown
     const sentimentBreakdown = { positive: 0, negative: 0, neutral: 0 };
     const total = enhancedEvents.length;
     
@@ -246,7 +242,6 @@ Please provide a JSON response with the following structure:
       sentimentBreakdown.negative = total - sentimentBreakdown.neutral - sentimentBreakdown.positive;
     }
 
-    // Select recommended reading (top 3 most engaging posts)
     const recommendedReading = enhancedEvents
       .slice(0, 3)
       .map(event => ({
@@ -271,7 +266,6 @@ Please provide a JSON response with the following structure:
   } catch (error) {
     console.error("Error in deep analysis:", error);
     
-    // Return fallback analysis
     const summaries = await Promise.all(
       events.map(event => summarizeContent(event.content))
     );
