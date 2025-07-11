@@ -14,7 +14,7 @@ const RELAYS = [
 ];
 
 const FREE_TIER_LIMIT = 6;
-const PREMIUM_TIER_LIMIT = 10;
+const PREMIUM_TIER_LIMIT = 5;
 
 export async function POST(request: Request) {
   try {
@@ -32,20 +32,20 @@ export async function POST(request: Request) {
 
     // Handle Deep Analysis
     if (type === 'deep-analysis') {
-      // if (!paymentHash) {
-      //   return NextResponse.json({ 
-      //     error: 'Payment required for deep analysis. Please complete the Lightning payment to continue.',
-      //     requiresPayment: true 
-      //   }, { status: 402 });
-      // }
+      if (!paymentHash) {
+        return NextResponse.json({ 
+          error: 'Payment required for deep analysis. Please complete the Lightning payment to continue.',
+          requiresPayment: true 
+        }, { status: 402 });
+      }
       
-      // const isPaid = await verifyPayment(paymentHash);
-      // if (!isPaid) {
-      //   return NextResponse.json({ 
-      //     error: 'Payment not confirmed. Please try again or contact support.',
-      //     paymentFailed: true 
-      //   }, { status: 402 });
-      // }
+      const isPaid = await verifyPayment(paymentHash);
+      if (!isPaid) {
+        return NextResponse.json({ 
+          error: 'Payment not confirmed. Please try again or contact support.',
+          paymentFailed: true 
+        }, { status: 402 });
+      }
 
       // Step 1: Intelligent Query Expansion
       const expandedQueries = await expandQuery(topic);
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       // Search with expanded queries
       for (const query of expandedQueries) {
         const filter: Filter = {
-          kinds: [1, 30023], // Regular notes and long-form content
+          kinds: [1], // Regular notes and long-form content:: 30023
           search: query,
           limit: 30,
         };

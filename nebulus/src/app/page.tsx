@@ -90,12 +90,12 @@ export default function Home() {
 
     if (type === 'deep-analysis') {
       setPendingQuery(query);
-      // setShowPaymentModal(true);
-      fetchCuratedEvents({ 
-        topic: query, 
-        type: 'deep-analysis',
-        // paymentHash 
-      });
+      setShowPaymentModal(true);
+      // fetchCuratedEvents({ 
+      //   topic: query, 
+      //   type: 'deep-analysis',
+      //   // paymentHash 
+      // });
     } else {
       fetchCuratedEvents({ topic: query, type });
     }

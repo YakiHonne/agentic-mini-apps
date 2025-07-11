@@ -138,7 +138,7 @@ export default function PaymentModal({
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-300">USD Equivalent:</span>
-                <span className="text-gray-400 text-sm">~${(amountSats * 0.0001).toFixed(2)}</span>
+                <span className="text-gray-400 text-sm">~${(amountSats * 0.002).toFixed(2)}</span>
               </div>
             </div>
 

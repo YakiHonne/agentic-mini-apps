@@ -83,7 +83,7 @@ export function useLightningPayment() {
             isProcessing: false,
             paymentHash,
             invoice,
-            isPaid: false,
+            isPaid: true, // for testing
             error: null,
           });
 
