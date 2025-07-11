@@ -65,7 +65,7 @@ const Navbar = ({ user }: NavbarProps) => {
                 <h1 className="font-bold text-base bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
                 Nebula
                 </h1>
-                <p className="text-white/60 text-xs">Nebulus AI lightning</p>
+                <p className="text-white/60 text-xs">Nebulus Smart AI</p>
               </div>
             </motion.div>
           
