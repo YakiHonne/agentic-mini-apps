@@ -29,7 +29,7 @@ const Navbar = ({ user }: NavbarProps) => {
   
   return (
     <motion.nav 
-      className="fixed top-3 left-3 right-3 z-50 backdrop-blur-xl bg-white/5 border border-white/20 rounded-xl shadow-2xl"
+      className="fixed top-3 left-3 right-3 z-50 backdrop-blur-xl bg-white/5 border border-white/20 rounded-xl shadow-2xl max-w-5xl mx-auto"
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
