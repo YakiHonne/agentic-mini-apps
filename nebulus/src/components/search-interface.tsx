@@ -83,11 +83,12 @@ const SearchInterface = ({
                                 onClick={() => setSearchType('search')}
                                 className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs sm:text-sm transition-all ${
                                     searchType === 'search'
-                                        ? 'bg-white/10 text-white'
-                                        : 'text-white/40 hover:text-white/60'
+                                        ? 'bg-white/10 text-white border border-white/20'
+                                        : 'text-white/40 hover:text-white/60 hover:bg-white/5'
                                 }`}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
+                                title="Free basic search with keyword matching and summaries"
                             >
                                 <Search className="w-3 h-3" />
                                 <AnimatePresence>
@@ -109,11 +110,12 @@ const SearchInterface = ({
                                 onClick={() => setSearchType('deep-analysis')}
                                 className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs sm:text-sm transition-all ${
                                     searchType === 'deep-analysis'
-                                        ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-white'
-                                        : 'text-white/40 hover:text-white/60'
+                                        ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-white border border-purple-500/30'
+                                        : 'text-white/40 hover:text-white/60 hover:bg-white/5'
                                 }`}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
+                                title="Premium AI-powered analysis with multi-relay search, sentiment analysis, and insights (210 sats)"
                             >
                                 <Sparkles className="w-3 h-3" />
                                 <AnimatePresence>
@@ -129,6 +131,15 @@ const SearchInterface = ({
                                         </motion.span>
                                     )}
                                 </AnimatePresence>
+                                {searchType === 'deep-analysis' && (
+                                    <motion.span
+                                        initial={{ scale: 0, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        className="text-xs bg-gradient-to-r from-purple-500 to-blue-500 text-white px-1 py-0.5 rounded-full ml-1"
+                                    >
+                                        210⚡
+                                    </motion.span>
+                                )}
                             </motion.button>
                         </div>
                         
