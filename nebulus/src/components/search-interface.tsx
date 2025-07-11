@@ -68,7 +68,7 @@ const SearchInterface = ({
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder={placeholder}
+                            placeholder={searchType === 'deep-analysis' ? "Enter topic for Deep Analysis. Takes longer but provides in-depth insights." : placeholder}
                             className="w-full bg-transparent text-white placeholder-white/40 border-none outline-none resize-none min-h-[40px] sm:min-h-[60px] max-h-[150px] sm:max-h-[200px] text-sm sm:text-lg leading-relaxed pr-12 sm:pr-16 pb-4 sm:pb-6"
                             rows={2}
                             onMouseEnter={() => setIsHovered(true)}
