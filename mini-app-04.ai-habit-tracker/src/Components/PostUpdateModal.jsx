@@ -9,7 +9,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { smartWidgetHandler } from "smart-widget-handler";
+import SMHandler from "smart-widget-handler";
 import {
   addPost,
   setAiAnalysis,
@@ -18,7 +18,7 @@ import {
 import { addToast } from "../Store/toastSlice";
 import AIAnalysisSection from "./AIAnalysisSection";
 
-export default function PostUpdateModal({ habit, onClose }) {
+export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
   const dispatch = useDispatch();
   const [postContent, setPostContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
@@ -83,25 +83,52 @@ export default function PostUpdateModal({ habit, onClose }) {
       return;
     }
 
+    if (!hostUrl) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "No host URL available for posting",
+        })
+      );
+      return;
+    }
+
     setIsPosting(true);
     try {
-      // Create the post with habit tracking context
+      // Create the Nostr event
+      const eventToPost = {
+        kind: 1, // Note event kind
+        content: `${postContent}\n\n🎯 ${habit.name} ${
+          habit.emoji
+        }\n#HabitTracker #${habit.name.replace(/\s+/g, "")} #NostrHabits`,
+        tags: [
+          ["t", "HabitTracker"],
+          ["t", habit.name.replace(/\s+/g, "")],
+          ["t", "NostrHabits"],
+        ],
+        created_at: Math.floor(Date.now() / 1000),
+      };
+
+      console.log("Publishing event:", eventToPost);
+
+      // Use SMHandler to post to Nostr
+      const result = await SMHandler.client.requestEventPublish(
+        eventToPost,
+        hostUrl
+      );
+
+      console.log("Event published successfully:", result);
+
+      // Create post data for local storage
       const postData = {
-        content: `${postContent}\n\n#HabitTracker #${habit.name.replace(
-          /\s+/g,
-          ""
-        )} ${habit.emoji}`,
+        content: postContent,
         habit: habit.name,
         habitId: habit.id,
         aiAnalysis: aiAnalysis,
         timestamp: new Date().toISOString(),
+        eventId: result.id || Date.now(),
+        userId: userData?.pubkey || "anonymous",
       };
-
-      // Use smart widget handler to post to Nostr
-      await smartWidgetHandler.sendData({
-        type: "habit_update",
-        data: postData,
-      });
 
       // Add to local posts
       dispatch(addPost(postData));
