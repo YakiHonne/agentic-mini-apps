@@ -30,7 +30,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
     }
 
-    // Handle Deep Analysis
     if (type === 'deep-analysis') {
       if (!paymentHash) {
         return NextResponse.json({ 
@@ -47,17 +46,14 @@ export async function POST(request: Request) {
         }, { status: 402 });
       }
 
-      // Step 1: Intelligent Query Expansion
       const expandedQueries = await expandQuery(topic);
       
-      // Step 2: Advanced Multi-Relay Search
       const pool = new SimplePool();
       const allEvents: Event[] = [];
 
-      // Search with expanded queries
       for (const query of expandedQueries) {
         const filter: Filter = {
-          kinds: [1], // Regular notes and long-form content:: 30023
+          kinds: [1, 30023], // Regular notes and long-form content:: 30023
           search: query,
           limit: 30,
         };
@@ -76,12 +72,10 @@ export async function POST(request: Request) {
 
       pool.close(RELAYS);
 
-      // Remove duplicates by event ID
       const uniqueEvents = allEvents.filter((event, index, arr) => 
         arr.findIndex(e => e.id === event.id) === index
       );
 
-      // Step 3: Advanced Filtering & Ranking
       let filteredEvents = uniqueEvents;
       
       if (!includeReplies) {
@@ -90,7 +84,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // Rank by engagement and recency
       const rankedEvents = filteredEvents
         .map(event => {
           const zapTags = event.tags.filter(tag => tag[0] === 'zap').length;
@@ -106,7 +99,6 @@ export async function POST(request: Request) {
         .sort((a, b) => b.score - a.score)
         .slice(0, PREMIUM_TIER_LIMIT);
 
-      // Step 4: Deep AI Analysis
       const analysisResult = await performDeepAnalysis(rankedEvents, topic, expandedQueries);
 
       return NextResponse.json({ 
@@ -118,7 +110,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // Regular Search (Free)
     const pool = new SimplePool();
     const filter: Filter = {
       kinds: [1],
@@ -143,7 +134,6 @@ export async function POST(request: Request) {
       .sort((a, b) => b.created_at - a.created_at)
       .slice(0, FREE_TIER_LIMIT);
 
-    // Generate basic summaries for free tier
     const summaryPromises = rankedEvents.map(event => summarizeContent(event.content));
     const summaries = await Promise.all(summaryPromises);
     
