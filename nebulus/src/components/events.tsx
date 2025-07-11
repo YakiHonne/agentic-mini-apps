@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Calendar, Sparkles } from 'lucide-react';
 import { CuratedEvent } from '../types/curate';
 import EventDetailDrawer from './event-detail-drawer';
+import { useStore } from '@/lib/store';
 
 interface EventsProps {
     curatedEvents: CuratedEvent[];
@@ -11,6 +12,8 @@ interface EventsProps {
 const Events: React.FC<EventsProps> = ({ curatedEvents }) => {
     const [selectedEvent, setSelectedEvent] = useState<CuratedEvent | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+    const user = useStore(state => state.user)
 
     const handleEventClick = (event: CuratedEvent) => {
         setSelectedEvent(event);
@@ -40,6 +43,7 @@ const Events: React.FC<EventsProps> = ({ curatedEvents }) => {
                 <div className="text-center">
                     <Sparkles className="w-8 h-8 text-white/20 mx-auto mb-3" />
                     <div className="text-white/60 text-sm">
+                        { user?.name && <>Hey <span className='bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-semibold'>@{user?.name}</span>!{" "}</>}
                         No events found yet. Search for Topics to See what is happening <span className='bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-semibold'>Right Now</span> in Crypto.
                     </div>
                 </div>
