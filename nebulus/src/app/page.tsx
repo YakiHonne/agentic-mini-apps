@@ -11,6 +11,7 @@ import PaymentModal from "@/components/payment-modal";
 import { toast } from "sonner";
 import { useCuratedEvents } from "@/lib/use-curated-events";
 import Loader from "@/components/ui/loader";
+import AIThinkingProcess from "@/components/ai-thinking-process-simple";
 import Events from "@/components/events";
 import DeepAnalysisResults from "@/components/deep-analysis-results";
 
@@ -38,6 +39,7 @@ export default function Home() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [pendingQuery, setPendingQuery] = useState("");
   const [currentSearchType, setCurrentSearchType] = useState<'search' | 'deep-analysis'>('search');
+  const [lastQuery, setLastQuery] = useState("");
 
   const { mutate: fetchCuratedEvents, isPending, data: events } = useCuratedEvents()
 
@@ -87,15 +89,11 @@ export default function Home() {
     }
 
     setCurrentSearchType(type);
+    setLastQuery(query);
 
     if (type === 'deep-analysis') {
       setPendingQuery(query);
       setShowPaymentModal(true);
-      // fetchCuratedEvents({ 
-      //   topic: query, 
-      //   type: 'deep-analysis',
-      //   // paymentHash 
-      // });
     } else {
       fetchCuratedEvents({ topic: query, type });
     }
@@ -103,11 +101,13 @@ export default function Home() {
 
   const handlePaymentSuccess = (paymentHash: string) => {
     if (pendingQuery) {
+      setLastQuery(pendingQuery);
       fetchCuratedEvents({ 
         topic: pendingQuery, 
         type: 'deep-analysis',
         paymentHash 
       });
+      setPendingQuery("");
     }
     setShowPaymentModal(false);
     toast.success("Payment confirmed! Starting Deep Analysis...");
@@ -130,7 +130,10 @@ export default function Home() {
 
       <div className="flex-1 p-4 py-5 mt-24 mb-40 max-w-4xl mx-auto">
         {isPending ? (
-          <Loader />
+          <AIThinkingProcess 
+            type={currentSearchType} 
+            query={lastQuery || "your query"}
+          />
         ) : events?.type === 'deep-analysis' && deepAnalysis ? (
           <div className="space-y-8">
             <DeepAnalysisResults 
