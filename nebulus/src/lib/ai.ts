@@ -35,7 +35,7 @@ export async function summarizeContent(content: string): Promise<string> {
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       messages: [
         {
           role: "system",
@@ -67,7 +67,7 @@ export async function summarizeContent(content: string): Promise<string> {
 export async function expandQuery(topic: string): Promise<string[]> {
   try {
     const completion = await openai.chat.completions.create({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       messages: [
         {
           role: "system",

@@ -13,7 +13,7 @@ const RELAYS = [
   'wss://relay.nostrich.de',
 ];
 
-const FREE_TIER_LIMIT = 5;
+const FREE_TIER_LIMIT = 6;
 const PREMIUM_TIER_LIMIT = 10;
 
 export async function POST(request: Request) {
