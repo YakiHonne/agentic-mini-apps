@@ -39,7 +39,9 @@ const Events: React.FC<EventsProps> = ({ curatedEvents }) => {
             >
                 <div className="text-center">
                     <Sparkles className="w-8 h-8 text-white/20 mx-auto mb-3" />
-                    <div className="text-white/60 text-sm">No curated events found, Search for Events and Latest happenings and get AI curated Summaries.</div>
+                    <div className="text-white/60 text-sm">
+                        No events found yet. Search for Topics to See what is happening <span className='bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-semibold'>Right Now</span> in Crypto.
+                    </div>
                 </div>
             </motion.div>
         );

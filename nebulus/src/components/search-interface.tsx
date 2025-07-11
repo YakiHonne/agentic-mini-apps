@@ -12,7 +12,7 @@ interface SearchInterfaceProps {
 
 const SearchInterface = ({ 
     onSearch, 
-    placeholder = "Ask anything or Search for posts (e.g Bitcoin, Solana, Rust, Ethereum, etc)...", 
+    placeholder = "Ask anything (e.g Bitcoin, Solana, Rust, Ethereum, etc)...", 
     className = "" ,
     isLoading = false
 }: SearchInterfaceProps) => {
@@ -176,7 +176,14 @@ const SearchInterface = ({
                                         exit={{ scale: 0 }}
                                         transition={{ duration: 0.3 }}
                                     >
-                                        <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                                         {isLoading ? (
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                            >
+                                                <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full" />
+                                            </motion.div>
+                                        ) : (<Send className="w-4 h-4 sm:w-5 sm:h-5" />)}
                                     </motion.div>
                                 )}
                             </AnimatePresence>
