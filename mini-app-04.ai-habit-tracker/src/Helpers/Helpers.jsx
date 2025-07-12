@@ -1,4 +1,4 @@
-import { store } from "../Store/Store";
+import { store } from "../Store/store";
 import { finalizeEvent, nip19 } from "nostr-tools";
 import axios from "axios";
 import { addToast } from "../Store/toastSlice";
