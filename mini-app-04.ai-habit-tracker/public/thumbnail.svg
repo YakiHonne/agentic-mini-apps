@@ -23,7 +23,7 @@
   
   <!-- Header -->
   <rect x="20" y="20" width="360" height="40" rx="12" fill="url(#cardGradient)" filter="url(#shadow)"/>
-  <text x="30" y="42" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#1e293b">🧠 AI Habit Tracker</text>
+  <text x="30" y="42" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#1e293b">⚡ ZapMindr</text>
   <circle cx="350" cy="40" r="12" fill="#10b981"/>
   <text x="346" y="44" font-family="system-ui, sans-serif" font-size="10" fill="white">✓</text>
   
