@@ -153,9 +153,41 @@
   color: var(--secondary-dark);
 }
 
-.lightning-badge {
-  background: var(--warning-color);
+.lightning-badge.connected {
+  background: var(--success-color);
   color: white;
+}
+
+.lightning-badge.disconnected {
+  background: var(--error-color);
+  color: white;
+}
+
+/* Lightning Info Section */
+.lightning-info {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+}
+
+.lightning-address {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-family: monospace;
+  background: var(--bg-primary);
+  padding: var(--spacing-xs);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+.lightning-address svg {
+  color: var(--warning-color);
+  flex-shrink: 0;
 }
 
 /* Header Section */
