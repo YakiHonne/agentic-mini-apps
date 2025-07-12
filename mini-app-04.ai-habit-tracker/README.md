@@ -1,6 +1,6 @@
-# AI Habit Tracker
+# ZapMindr
 
-A smart habit tracking mini-app built for the Nostr ecosystem. Users can stake sats on their habits, post progress updates, and receive AI-analyzed rewards based on their authentic progress.
+ZapMindr - A smart habit tracking mini-app built for the Nostr ecosystem. Users can stake sats on their habits, post progress updates, and receive AI-analyzed rewards based on their authentic progress.
 
 ## Features
 

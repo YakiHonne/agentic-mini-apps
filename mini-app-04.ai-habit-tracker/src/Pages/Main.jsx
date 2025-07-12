@@ -12,7 +12,7 @@ export default function Main({ userData, hostUrl }) {
     // Load habits from localStorage on component mount
     if (userData?.pubkey) {
       const savedHabits = localStorage.getItem(
-        `aiHabitTracker_habits_${userData.pubkey}`
+        `zapMindr_habits_${userData.pubkey}`
       );
       if (savedHabits) {
         try {
@@ -29,7 +29,7 @@ export default function Main({ userData, hostUrl }) {
   useEffect(() => {
     if (habits.length > 0 && userData?.pubkey) {
       localStorage.setItem(
-        `aiHabitTracker_habits_${userData.pubkey}`,
+        `zapMindr_habits_${userData.pubkey}`,
         JSON.stringify(habits)
       );
     }
@@ -39,7 +39,7 @@ export default function Main({ userData, hostUrl }) {
     <div className="main-container">
       <div className="main-content">
         <div className="header-section">
-          <h1>🎯 AI Habit Tracker</h1>
+          <h1>⚡ ZapMindr</h1>
           <p className="subtitle">Stake sats, build habits, earn rewards</p>
         </div>
 
