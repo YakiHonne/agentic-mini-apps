@@ -24,6 +24,7 @@ import {
 } from "../Store/habitTrackerSlice";
 import { addToast } from "../Store/toastSlice";
 import AIAnalysisSection from "./AIAnalysisSection";
+import PaymentModal from "./PaymentModal";
 import {
   FileUpload,
   getVideoFromURL,
@@ -49,6 +50,8 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
   const [postingSuccess, setPostingSuccess] = useState(false); // Track overall success
   const [relayStatus, setRelayStatus] = useState(null); // Track relay connectivity info
   const [usedFallback, setUsedFallback] = useState(false); // Track if fallback was used
+  const [showRewardModal, setShowRewardModal] = useState(false); // Track reward payment modal
+  const [pendingReward, setPendingReward] = useState(null); // Track pending reward details
 
   // Handle paste events for images
   useEffect(() => {
@@ -377,12 +380,29 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
       // Add to local posts
       dispatch(addPost(postData));
 
-      // If AI analysis suggests reward, update habit streak
+      // If AI analysis suggests reward, update habit streak and show reward payment
       if (analysis && analysis.rewardRecommendation === "approved") {
         dispatch(updateHabitStreak({ habitId: habit.id, success: true }));
         setStreakUpdated(true);
         setRewardEarned(habit.stakingAmount);
         setPostingSuccess(true);
+
+        // Prepare reward payment details
+        const rewardDetails = {
+          amount: habit.stakingAmount,
+          habitName: habit.name,
+          streakDays: habit.currentStreak + 1, // New streak count
+          description: `Reward for completing ${habit.name} - ${
+            habit.currentStreak + 1
+          } day streak!`,
+        };
+
+        setPendingReward(rewardDetails);
+
+        // Show reward payment modal after a brief delay to see the success
+        setTimeout(() => {
+          setShowRewardModal(true);
+        }, 2000);
       } else {
         setPostingSuccess(false);
       }
@@ -453,6 +473,32 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
     onClose();
   };
 
+  // Handle reward payment success
+  const handleRewardPaymentSuccess = (paymentResult) => {
+    console.log("Reward payment successful:", paymentResult);
+    setShowRewardModal(false);
+
+    dispatch(
+      addToast({
+        type: "success",
+        message: `🎉 Reward of ${pendingReward?.amount} sats sent to your wallet!`,
+      })
+    );
+  };
+
+  // Handle reward payment failure
+  const handleRewardPaymentFailure = (error) => {
+    console.error("Reward payment failed:", error);
+    setShowRewardModal(false);
+
+    dispatch(
+      addToast({
+        type: "warning",
+        message: `Reward earned but payment failed: ${error.message}. Contact support to claim your ${pendingReward?.amount} sats.`,
+      })
+    );
+  };
+
   // Validate connection state before posting
   const validateConnection = () => {
     if (!userData?.pubkey) {
@@ -490,543 +536,560 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content post-modal">
-        <div className="modal-header">
-          <div className="habit-context">
-            <span className="habit-emoji">{habit.emoji}</span>
-            <div>
-              <h2>{postingComplete ? "Progress Results" : "Post Update"}</h2>
-              <p className="habit-name">{habit.name}</p>
+    <>
+      <div className="modal-overlay">
+        <div className="modal-content post-modal">
+          <div className="modal-header">
+            <div className="habit-context">
+              <span className="habit-emoji">{habit.emoji}</span>
+              <div>
+                <h2>{postingComplete ? "Progress Results" : "Post Update"}</h2>
+                <p className="habit-name">{habit.name}</p>
+              </div>
             </div>
+            <button
+              className="modal-close"
+              onClick={postingComplete ? handleCloseModal : onClose}
+            >
+              <X size={24} />
+            </button>
           </div>
-          <button
-            className="modal-close"
-            onClick={postingComplete ? handleCloseModal : onClose}
-          >
-            <X size={24} />
-          </button>
-        </div>
 
-        {!postingComplete && (
-          <div className="post-form">
-            <div className="form-group">
-              <label htmlFor="postContent">
-                <MessageCircle size={16} />
-                Share your progress
-              </label>
-              <textarea
-                id="postContent"
-                value={postContent}
-                onChange={(e) => setPostContent(e.target.value)}
-                placeholder={`Tell us about your progress with "${habit.name}". What did you accomplish today? How are you feeling about your journey?`}
-                rows="4"
-                className="post-textarea"
-              />
-            </div>
-
-            {/* Media Upload Section */}
-            <div className="media-upload-section">
-              <div className="upload-controls">
-                <input
-                  type="file"
-                  id="mediaUpload"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={handleFileUpload}
-                  style={{ display: "none" }}
-                  disabled={isUploading}
-                />
-                <label htmlFor="mediaUpload" className="upload-btn">
-                  {isUploading ? (
-                    <div className="upload-loading">
-                      <div className="upload-progress">
-                        <div
-                          className="upload-progress-bar"
-                          style={{ width: `${uploadProgress}%` }}
-                        />
-                      </div>
-                      <div className="upload-text">
-                        <Upload size={20} className="upload-icon spinning" />
-                        <span>Uploading... {uploadProgress}%</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="upload-content">
-                      <div className="upload-icon-container">
-                        <Upload size={24} className="upload-icon" />
-                        <Camera size={20} className="camera-icon" />
-                      </div>
-                      <div className="upload-text">
-                        <span className="upload-title">
-                          Add Photos & Videos
-                        </span>
-                        <span className="upload-subtitle">
-                          Drag & drop or click to browse
-                        </span>
-                      </div>
-                    </div>
-                  )}
+          {!postingComplete && (
+            <div className="post-form">
+              <div className="form-group">
+                <label htmlFor="postContent">
+                  <MessageCircle size={16} />
+                  Share your progress
                 </label>
+                <textarea
+                  id="postContent"
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  placeholder={`Tell us about your progress with "${habit.name}". What did you accomplish today? How are you feeling about your journey?`}
+                  rows="4"
+                  className="post-textarea"
+                />
               </div>
 
-              {/* Uploaded Media Preview */}
-              {uploadedMedia.length > 0 && (
-                <div className="media-preview-container">
-                  <div className="media-preview-header">
-                    <span className="media-count">
-                      {uploadedMedia.length} file
-                      {uploadedMedia.length > 1 ? "s" : ""} uploaded
-                    </span>
-                  </div>
-                  <div className="media-preview-grid">
-                    {uploadedMedia.map((media) => (
-                      <div key={media.id} className="media-preview-item">
-                        {media.type === "image" ? (
-                          <img
-                            src={media.previewUrl}
-                            alt={media.name}
-                            className="media-preview-image"
-                            onClick={() => showMediaPreview(media)}
+              {/* Media Upload Section */}
+              <div className="media-upload-section">
+                <div className="upload-controls">
+                  <input
+                    type="file"
+                    id="mediaUpload"
+                    multiple
+                    accept="image/*,video/*"
+                    onChange={handleFileUpload}
+                    style={{ display: "none" }}
+                    disabled={isUploading}
+                  />
+                  <label htmlFor="mediaUpload" className="upload-btn">
+                    {isUploading ? (
+                      <div className="upload-loading">
+                        <div className="upload-progress">
+                          <div
+                            className="upload-progress-bar"
+                            style={{ width: `${uploadProgress}%` }}
                           />
-                        ) : (
-                          <div className="media-preview-video-container">
-                            <video
-                              src={media.previewUrl}
-                              className="media-preview-video"
-                              muted
-                              onClick={() => showMediaPreview(media)}
-                            />
-                            <div className="video-overlay">
-                              <Video size={20} />
-                            </div>
-                          </div>
-                        )}
-                        <div className="media-preview-overlay">
-                          <div className="media-info">
-                            <div className="media-type">
-                              {media.type === "image" ? (
-                                <ImageIcon size={14} />
-                              ) : (
-                                <Video size={14} />
-                              )}
-                            </div>
-                            <button
-                              className="preview-media-btn"
-                              onClick={() => showMediaPreview(media)}
-                              title="Preview"
-                            >
-                              <Eye size={14} />
-                            </button>
-                            <button
-                              className="remove-media-btn"
-                              onClick={() => removeMedia(media.id)}
-                              title="Remove file"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
+                        </div>
+                        <div className="upload-text">
+                          <Upload size={20} className="upload-icon spinning" />
+                          <span>Uploading... {uploadProgress}%</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Detailed Media Preview Section */}
-                  <div className="detailed-media-preview">
-                    <h4>Media Preview</h4>
-                    {uploadedMedia.map((media) => (
-                      <div
-                        key={`preview-${media.id}`}
-                        className="media-detail-card"
-                      >
-                        <div className="media-detail-header">
-                          <div className="media-detail-info">
-                            <div className="media-detail-icon">
-                              {media.type === "image" ? (
-                                <ImageIcon size={20} />
-                              ) : (
-                                <Video size={20} />
-                              )}
-                            </div>
-                            <div>
-                              <p className="media-name">{media.name}</p>
-                              <p className="media-url">{media.url}</p>
-                            </div>
-                          </div>
-                          <button
-                            className="remove-media-detail-btn"
-                            onClick={() => removeMedia(media.id)}
-                            title="Remove"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                    ) : (
+                      <div className="upload-content">
+                        <div className="upload-icon-container">
+                          <Upload size={24} className="upload-icon" />
+                          <Camera size={20} className="camera-icon" />
                         </div>
-                        <div className="media-detail-preview">
+                        <div className="upload-text">
+                          <span className="upload-title">
+                            Add Photos & Videos
+                          </span>
+                          <span className="upload-subtitle">
+                            Drag & drop or click to browse
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </label>
+                </div>
+
+                {/* Uploaded Media Preview */}
+                {uploadedMedia.length > 0 && (
+                  <div className="media-preview-container">
+                    <div className="media-preview-header">
+                      <span className="media-count">
+                        {uploadedMedia.length} file
+                        {uploadedMedia.length > 1 ? "s" : ""} uploaded
+                      </span>
+                    </div>
+                    <div className="media-preview-grid">
+                      {uploadedMedia.map((media) => (
+                        <div key={media.id} className="media-preview-item">
                           {media.type === "image" ? (
                             <img
-                              src={media.url}
+                              src={media.previewUrl}
                               alt={media.name}
-                              className="media-detail-image"
+                              className="media-preview-image"
+                              onClick={() => showMediaPreview(media)}
                             />
                           ) : (
-                            <div className="media-detail-video">
-                              {getVideoFromURL(media.url)}
+                            <div className="media-preview-video-container">
+                              <video
+                                src={media.previewUrl}
+                                className="media-preview-video"
+                                muted
+                                onClick={() => showMediaPreview(media)}
+                              />
+                              <div className="video-overlay">
+                                <Video size={20} />
+                              </div>
                             </div>
                           )}
+                          <div className="media-preview-overlay">
+                            <div className="media-info">
+                              <div className="media-type">
+                                {media.type === "image" ? (
+                                  <ImageIcon size={14} />
+                                ) : (
+                                  <Video size={14} />
+                                )}
+                              </div>
+                              <button
+                                className="preview-media-btn"
+                                onClick={() => showMediaPreview(media)}
+                                title="Preview"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                className="remove-media-btn"
+                                onClick={() => removeMedia(media.id)}
+                                title="Remove file"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+                      ))}
+                    </div>
 
-            <div className="post-actions">
-              <button
-                type="button"
-                className="post-btn streamlined-post-btn"
-                onClick={handlePostToNostr}
-                disabled={
-                  isPosting ||
-                  !postContent.trim() ||
-                  !userData?.pubkey ||
-                  !hostUrl
-                }
-              >
-                {isPosting ? (
-                  <div className="posting-progress">
-                    <div className="posting-step">{postingStep}</div>
-                    <div className="posting-spinner">
-                      <Brain
-                        size={16}
-                        className={isAnalyzing ? "spinning" : ""}
-                      />
-                      {postingStep.includes("Posting") && (
-                        <Send size={16} className="spinning" />
-                      )}
-                      {postingStep.includes("Finalizing") && (
-                        <CheckCircle size={16} className="pulsing" />
-                      )}
+                    {/* Detailed Media Preview Section */}
+                    <div className="detailed-media-preview">
+                      <h4>Media Preview</h4>
+                      {uploadedMedia.map((media) => (
+                        <div
+                          key={`preview-${media.id}`}
+                          className="media-detail-card"
+                        >
+                          <div className="media-detail-header">
+                            <div className="media-detail-info">
+                              <div className="media-detail-icon">
+                                {media.type === "image" ? (
+                                  <ImageIcon size={20} />
+                                ) : (
+                                  <Video size={20} />
+                                )}
+                              </div>
+                              <div>
+                                <p className="media-name">{media.name}</p>
+                                <p className="media-url">{media.url}</p>
+                              </div>
+                            </div>
+                            <button
+                              className="remove-media-detail-btn"
+                              onClick={() => removeMedia(media.id)}
+                              title="Remove"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                          <div className="media-detail-preview">
+                            {media.type === "image" ? (
+                              <img
+                                src={media.url}
+                                alt={media.name}
+                                className="media-detail-image"
+                              />
+                            ) : (
+                              <div className="media-detail-video">
+                                {getVideoFromURL(media.url)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ) : (
-                  <div className="post-btn-content">
-                    <Send size={16} />
-                    <span>
-                      {!userData?.pubkey || !hostUrl
-                        ? "Connecting..."
-                        : "Post Update"}
-                    </span>
+                )}
+              </div>
+
+              <div className="post-actions">
+                <button
+                  type="button"
+                  className="post-btn streamlined-post-btn"
+                  onClick={handlePostToNostr}
+                  disabled={
+                    isPosting ||
+                    !postContent.trim() ||
+                    !userData?.pubkey ||
+                    !hostUrl
+                  }
+                >
+                  {isPosting ? (
+                    <div className="posting-progress">
+                      <div className="posting-step">{postingStep}</div>
+                      <div className="posting-spinner">
+                        <Brain
+                          size={16}
+                          className={isAnalyzing ? "spinning" : ""}
+                        />
+                        {postingStep.includes("Posting") && (
+                          <Send size={16} className="spinning" />
+                        )}
+                        {postingStep.includes("Finalizing") && (
+                          <CheckCircle size={16} className="pulsing" />
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="post-btn-content">
+                      <Send size={16} />
+                      <span>
+                        {!userData?.pubkey || !hostUrl
+                          ? "Connecting..."
+                          : "Post Update"}
+                      </span>
+                    </div>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {aiAnalysis && (
+            <div className="ai-analysis-container">
+              <AIAnalysisSection analysis={aiAnalysis} habit={habit} />
+            </div>
+          )}
+
+          {/* Posting Complete Results */}
+          {postingComplete && (
+            <div className="posting-results-container">
+              <div className="posting-results-header">
+                <div className="results-icon">
+                  {postingSuccess ? (
+                    <CheckCircle size={32} className="success-icon" />
+                  ) : (
+                    <AlertCircle size={32} className="warning-icon" />
+                  )}
+                </div>
+                <div className="results-title">
+                  <h3>
+                    {postingSuccess ? "🎉 Great Progress!" : "📝 Keep Going!"}
+                  </h3>
+                  <p>
+                    {postingSuccess
+                      ? "Your habit update has been successfully analyzed and posted!"
+                      : "Your update was posted, but let's work on making it even better!"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="posting-results-grid">
+                {/* Streak Update Status */}
+                <div className="result-card">
+                  <div className="result-header">
+                    <div className="result-icon">
+                      {streakUpdated ? (
+                        <CheckCircle size={20} className="success-color" />
+                      ) : (
+                        <AlertCircle size={20} className="warning-color" />
+                      )}
+                    </div>
+                    <h4>Streak Status</h4>
                   </div>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {aiAnalysis && (
-          <div className="ai-analysis-container">
-            <AIAnalysisSection analysis={aiAnalysis} habit={habit} />
-          </div>
-        )}
-
-        {/* Posting Complete Results */}
-        {postingComplete && (
-          <div className="posting-results-container">
-            <div className="posting-results-header">
-              <div className="results-icon">
-                {postingSuccess ? (
-                  <CheckCircle size={32} className="success-icon" />
-                ) : (
-                  <AlertCircle size={32} className="warning-icon" />
-                )}
-              </div>
-              <div className="results-title">
-                <h3>
-                  {postingSuccess ? "🎉 Great Progress!" : "📝 Keep Going!"}
-                </h3>
-                <p>
-                  {postingSuccess
-                    ? "Your habit update has been successfully analyzed and posted!"
-                    : "Your update was posted, but let's work on making it even better!"}
-                </p>
-              </div>
-            </div>
-
-            <div className="posting-results-grid">
-              {/* Streak Update Status */}
-              <div className="result-card">
-                <div className="result-header">
-                  <div className="result-icon">
+                  <div className="result-content">
                     {streakUpdated ? (
-                      <CheckCircle size={20} className="success-color" />
+                      <div className="streak-success">
+                        <p className="streak-message">Streak updated! 🔥</p>
+                        <p className="streak-count">
+                          Current: {habit.currentStreak + 1} days
+                        </p>
+                      </div>
                     ) : (
-                      <AlertCircle size={20} className="warning-color" />
+                      <div className="streak-motivation">
+                        <p className="streak-message">
+                          {aiAnalysis?.rewardRecommendation === "pending"
+                            ? "Analysis pending - try adding more detail!"
+                            : "Keep pushing! Your next update can build the streak!"}
+                        </p>
+                        <p className="streak-count">
+                          Current: {habit.currentStreak} days
+                        </p>
+                      </div>
                     )}
                   </div>
-                  <h4>Streak Status</h4>
                 </div>
-                <div className="result-content">
-                  {streakUpdated ? (
-                    <div className="streak-success">
-                      <p className="streak-message">Streak updated! 🔥</p>
-                      <p className="streak-count">
-                        Current: {habit.currentStreak + 1} days
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="streak-motivation">
-                      <p className="streak-message">
-                        {aiAnalysis?.rewardRecommendation === "pending"
-                          ? "Analysis pending - try adding more detail!"
-                          : "Keep pushing! Your next update can build the streak!"}
-                      </p>
-                      <p className="streak-count">
-                        Current: {habit.currentStreak} days
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Reward Status */}
-              <div className="result-card">
-                <div className="result-header">
-                  <div className="result-icon">
-                    <Zap size={20} className="warning-color" />
-                  </div>
-                  <h4>Reward Status</h4>
-                </div>
-                <div className="result-content">
-                  {rewardEarned > 0 ? (
-                    <div className="reward-earned">
-                      <p className="reward-message">Sats earned! ⚡</p>
-                      <p className="reward-amount">{rewardEarned} sats</p>
-                    </div>
-                  ) : (
-                    <div className="reward-pending">
-                      <p className="reward-message">
-                        {aiAnalysis?.rewardRecommendation === "pending"
-                          ? "Reward pending verification"
-                          : "No reward this time"}
-                      </p>
-                      <p className="reward-amount">0 sats</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* AI Analysis Summary */}
-              {aiAnalysis && (
-                <div className="result-card full-width">
+                {/* Reward Status */}
+                <div className="result-card">
                   <div className="result-header">
                     <div className="result-icon">
-                      <Brain size={20} className="accent-color" />
+                      <Zap size={20} className="warning-color" />
                     </div>
-                    <h4>AI Analysis Summary</h4>
+                    <h4>Reward Status</h4>
                   </div>
                   <div className="result-content">
-                    <div className="analysis-summary">
-                      <div className="summary-item">
-                        <span className="summary-label">Sentiment:</span>
-                        <span
-                          className={`summary-value ${aiAnalysis.sentiment}`}
-                        >
-                          {aiAnalysis.sentiment}
-                        </span>
+                    {rewardEarned > 0 ? (
+                      <div className="reward-earned">
+                        <p className="reward-message">Sats earned! ⚡</p>
+                        <p className="reward-amount">{rewardEarned} sats</p>
                       </div>
-                      <div className="summary-item">
-                        <span className="summary-label">Confidence:</span>
-                        <span className="summary-value">
-                          {aiAnalysis.confidence}%
-                        </span>
+                    ) : (
+                      <div className="reward-pending">
+                        <p className="reward-message">
+                          {aiAnalysis?.rewardRecommendation === "pending"
+                            ? "Reward pending verification"
+                            : "No reward this time"}
+                        </p>
+                        <p className="reward-amount">0 sats</p>
                       </div>
-                      {aiAnalysis.suggestion && (
-                        <div className="ai-suggestion-brief">
-                          <p>"{aiAnalysis.suggestion}"</p>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-              )}
 
-              {/* Relay Status Debug Info */}
-              {(relayStatus === "fallback" ||
-                relayStatus === "simplified" ||
-                relayStatus === "error") && (
-                <div className="result-card full-width debug-info">
-                  <div className="result-header">
-                    <div className="result-icon">
-                      <AlertCircle size={20} className="warning-color" />
-                    </div>
-                    <h4>Connection Status</h4>
-                  </div>
-                  <div className="result-content">
-                    <div className="debug-summary">
-                      <div className="debug-item">
-                        <span className="debug-label">Relay Status:</span>
-                        <span className={`debug-value ${relayStatus}`}>
-                          {relayStatus === "fallback" && "Saved locally only"}
-                          {relayStatus === "simplified" &&
-                            "Published with basic format"}
-                          {relayStatus === "error" &&
-                            "Connection issues detected"}
-                          {relayStatus === "success" &&
-                            "Published successfully"}
-                        </span>
+                {/* AI Analysis Summary */}
+                {aiAnalysis && (
+                  <div className="result-card full-width">
+                    <div className="result-header">
+                      <div className="result-icon">
+                        <Brain size={20} className="accent-color" />
                       </div>
-                      {usedFallback && (
-                        <div className="debug-message">
-                          <p>
-                            <strong>Note:</strong> Your progress has been saved
-                            locally. The app will automatically retry posting
-                            when connectivity improves.
-                          </p>
+                      <h4>AI Analysis Summary</h4>
+                    </div>
+                    <div className="result-content">
+                      <div className="analysis-summary">
+                        <div className="summary-item">
+                          <span className="summary-label">Sentiment:</span>
+                          <span
+                            className={`summary-value ${aiAnalysis.sentiment}`}
+                          >
+                            {aiAnalysis.sentiment}
+                          </span>
                         </div>
-                      )}
-                      {relayStatus === "simplified" && (
-                        <div className="debug-message">
-                          <p>
-                            <strong>Note:</strong> Published with simplified
-                            format due to relay limitations. Some features may
-                            not be fully preserved.
-                          </p>
+                        <div className="summary-item">
+                          <span className="summary-label">Confidence:</span>
+                          <span className="summary-value">
+                            {aiAnalysis.confidence}%
+                          </span>
                         </div>
-                      )}
+                        {aiAnalysis.suggestion && (
+                          <div className="ai-suggestion-brief">
+                            <p>"{aiAnalysis.suggestion}"</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
 
-            <div className="posting-results-actions">
-              {!postingSuccess && (
+                {/* Relay Status Debug Info */}
+                {(relayStatus === "fallback" ||
+                  relayStatus === "simplified" ||
+                  relayStatus === "error") && (
+                  <div className="result-card full-width debug-info">
+                    <div className="result-header">
+                      <div className="result-icon">
+                        <AlertCircle size={20} className="warning-color" />
+                      </div>
+                      <h4>Connection Status</h4>
+                    </div>
+                    <div className="result-content">
+                      <div className="debug-summary">
+                        <div className="debug-item">
+                          <span className="debug-label">Relay Status:</span>
+                          <span className={`debug-value ${relayStatus}`}>
+                            {relayStatus === "fallback" && "Saved locally only"}
+                            {relayStatus === "simplified" &&
+                              "Published with basic format"}
+                            {relayStatus === "error" &&
+                              "Connection issues detected"}
+                            {relayStatus === "success" &&
+                              "Published successfully"}
+                          </span>
+                        </div>
+                        {usedFallback && (
+                          <div className="debug-message">
+                            <p>
+                              <strong>Note:</strong> Your progress has been
+                              saved locally. The app will automatically retry
+                              posting when connectivity improves.
+                            </p>
+                          </div>
+                        )}
+                        {relayStatus === "simplified" && (
+                          <div className="debug-message">
+                            <p>
+                              <strong>Note:</strong> Published with simplified
+                              format due to relay limitations. Some features may
+                              not be fully preserved.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="posting-results-actions">
+                {!postingSuccess && (
+                  <button
+                    className="try-again-btn"
+                    onClick={handleTryAgain}
+                    type="button"
+                  >
+                    <AlertCircle size={16} />
+                    Try Again
+                  </button>
+                )}
                 <button
-                  className="try-again-btn"
-                  onClick={handleTryAgain}
+                  className="close-results-btn"
+                  onClick={handleCloseModal}
                   type="button"
                 >
-                  <AlertCircle size={16} />
-                  Try Again
+                  <CheckCircle size={16} />
+                  {postingSuccess ? "Perfect!" : "Done"}
                 </button>
-              )}
-              <button
-                className="close-results-btn"
-                onClick={handleCloseModal}
-                type="button"
-              >
+              </div>
+            </div>
+          )}
+
+          {!postingComplete && (
+            <div className="post-info">
+              <div className="info-item">
+                <Zap size={16} />
+                <span>Staked: {habit.stakingAmount} sats</span>
+              </div>
+              <div className="info-item">
                 <CheckCircle size={16} />
-                {postingSuccess ? "Perfect!" : "Done"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!postingComplete && (
-          <div className="post-info">
-            <div className="info-item">
-              <Zap size={16} />
-              <span>Staked: {habit.stakingAmount} sats</span>
-            </div>
-            <div className="info-item">
-              <CheckCircle size={16} />
-              <span>Streak: {habit.currentStreak} days</span>
-            </div>
-            <div className="info-item">
-              <AlertCircle size={16} />
-              <span>AI will analyze your post for authenticity</span>
-            </div>
-          </div>
-        )}
-
-        {/* Pasted Image Modal */}
-        {pastedImage && (
-          <div className="paste-modal-overlay">
-            <div className="paste-modal-content">
-              <h3>Add pasted image?</h3>
-              <div className="paste-preview">
-                <img
-                  src={pastedImage.url}
-                  alt="Pasted"
-                  className="paste-preview-image"
-                />
+                <span>Streak: {habit.currentStreak} days</span>
               </div>
-              <div className="paste-actions">
-                <button
-                  className="paste-cancel-btn"
-                  onClick={() => handlePastedImage(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="paste-add-btn"
-                  onClick={() => handlePastedImage(true)}
-                >
-                  <Camera size={16} />
-                  Add Image
-                </button>
+              <div className="info-item">
+                <AlertCircle size={16} />
+                <span>AI will analyze your post for authenticity</span>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Media Preview Modal */}
-        {previewMedia && (
-          <div className="media-preview-modal-overlay">
-            <div className="media-preview-modal-content">
-              <div className="media-preview-modal-header">
-                <div className="preview-media-info">
-                  <div className="preview-media-icon">
-                    {previewMedia.type === "image" ? (
-                      <ImageIcon size={20} />
-                    ) : (
-                      <Video size={20} />
-                    )}
-                  </div>
-                  <div>
-                    <h3>Media Preview</h3>
-                    <p className="preview-media-name">{previewMedia.name}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={closeMediaPreview}
-                  className="close-preview-btn"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="media-preview-modal-body">
-                {previewMedia.type === "image" ? (
+          {/* Pasted Image Modal */}
+          {pastedImage && (
+            <div className="paste-modal-overlay">
+              <div className="paste-modal-content">
+                <h3>Add pasted image?</h3>
+                <div className="paste-preview">
                   <img
-                    src={previewMedia.url}
-                    alt="Preview"
-                    className="preview-image"
+                    src={pastedImage.url}
+                    alt="Pasted"
+                    className="paste-preview-image"
                   />
-                ) : (
-                  <div className="video-preview-container">
-                    {getVideoFromURL(previewMedia.url)}
-                  </div>
-                )}
-              </div>
-              <div className="media-preview-modal-footer">
-                <div className="media-details">
-                  <p>
-                    <strong>URL:</strong> {previewMedia.url}
-                  </p>
-                  <p>
-                    <strong>Type:</strong> {previewMedia.type}
-                  </p>
-                  <p>
-                    <strong>Size:</strong>{" "}
-                    {Math.round(previewMedia.size / 1024)} KB
-                  </p>
+                </div>
+                <div className="paste-actions">
+                  <button
+                    className="paste-cancel-btn"
+                    onClick={() => handlePastedImage(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="paste-add-btn"
+                    onClick={() => handlePastedImage(true)}
+                  >
+                    <Camera size={16} />
+                    Add Image
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Media Preview Modal */}
+          {previewMedia && (
+            <div className="media-preview-modal-overlay">
+              <div className="media-preview-modal-content">
+                <div className="media-preview-modal-header">
+                  <div className="preview-media-info">
+                    <div className="preview-media-icon">
+                      {previewMedia.type === "image" ? (
+                        <ImageIcon size={20} />
+                      ) : (
+                        <Video size={20} />
+                      )}
+                    </div>
+                    <div>
+                      <h3>Media Preview</h3>
+                      <p className="preview-media-name">{previewMedia.name}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closeMediaPreview}
+                    className="close-preview-btn"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+                <div className="media-preview-modal-body">
+                  {previewMedia.type === "image" ? (
+                    <img
+                      src={previewMedia.url}
+                      alt="Preview"
+                      className="preview-image"
+                    />
+                  ) : (
+                    <div className="video-preview-container">
+                      {getVideoFromURL(previewMedia.url)}
+                    </div>
+                  )}
+                </div>
+                <div className="media-preview-modal-footer">
+                  <div className="media-details">
+                    <p>
+                      <strong>URL:</strong> {previewMedia.url}
+                    </p>
+                    <p>
+                      <strong>Type:</strong> {previewMedia.type}
+                    </p>
+                    <p>
+                      <strong>Size:</strong>{" "}
+                      {Math.round(previewMedia.size / 1024)} KB
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Reward Payment Modal */}
+      {showRewardModal && pendingReward && (
+        <PaymentModal
+          isOpen={showRewardModal}
+          onClose={() => setShowRewardModal(false)}
+          paymentType="reward"
+          amount={pendingReward.amount}
+          habitName={pendingReward.habitName}
+          userData={userData}
+          streakDays={pendingReward.streakDays}
+          onPaymentSuccess={handleRewardPaymentSuccess}
+          onPaymentFailure={handleRewardPaymentFailure}
+        />
+      )}
+    </>
   );
 }
