@@ -1,75 +1,30 @@
 import React from "react";
-import {
-  Brain,
-  CheckCircle,
-  AlertCircle,
-  TrendingUp,
-  Award,
-  Clock,
-} from "lucide-react";
+import { Brain, TrendingUp, Zap, Target, Award, Eye } from "lucide-react";
 
 export default function AIAnalysisSection({ analysis, habit }) {
+  if (!analysis) return null;
+
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
       case "positive":
-        return "#10b981";
-      case "neutral":
-        return "#6b7280";
+        return "var(--success-color)";
       case "negative":
-        return "#f59e0b";
+        return "var(--error-color)";
       default:
-        return "#6b7280";
+        return "var(--warning-color)";
     }
   };
 
-  const getRelevanceColor = (relevance) => {
-    switch (relevance) {
-      case "high":
-        return "#10b981";
-      case "medium":
-        return "#f59e0b";
-      case "low":
-        return "#ef4444";
-      default:
-        return "#6b7280";
-    }
-  };
-
-  const getRewardStatus = (recommendation) => {
-    switch (recommendation) {
+  const getRewardStatusColor = (status) => {
+    switch (status) {
       case "approved":
-        return {
-          icon: <CheckCircle size={16} />,
-          color: "#10b981",
-          text: "Reward Approved",
-          description: "Great job! Your update shows genuine progress.",
-        };
-      case "pending":
-        return {
-          icon: <Clock size={16} />,
-          color: "#f59e0b",
-          text: "Under Review",
-          description: "Your update is being reviewed for authenticity.",
-        };
+        return "var(--success-color)";
       case "rejected":
-        return {
-          icon: <AlertCircle size={16} />,
-          color: "#ef4444",
-          text: "Needs Improvement",
-          description:
-            "Please provide more specific details about your progress.",
-        };
+        return "var(--error-color)";
       default:
-        return {
-          icon: <AlertCircle size={16} />,
-          color: "#6b7280",
-          text: "Analyzing...",
-          description: "AI is analyzing your update.",
-        };
+        return "var(--warning-color)";
     }
   };
-
-  const rewardStatus = getRewardStatus(analysis.rewardRecommendation);
 
   return (
     <div className="ai-analysis-section">
@@ -82,11 +37,13 @@ export default function AIAnalysisSection({ analysis, habit }) {
         <div className="analysis-item">
           <div className="analysis-label">Sentiment</div>
           <div className="analysis-value">
-            <span
+            <div
               className="sentiment-indicator"
               style={{ backgroundColor: getSentimentColor(analysis.sentiment) }}
             />
-            {analysis.sentiment}
+            <span style={{ textTransform: "capitalize" }}>
+              {analysis.sentiment}
+            </span>
             <span className="confidence">({analysis.confidence}%)</span>
           </div>
         </div>
@@ -94,58 +51,107 @@ export default function AIAnalysisSection({ analysis, habit }) {
         <div className="analysis-item">
           <div className="analysis-label">Habit Relevance</div>
           <div className="analysis-value">
-            <TrendingUp
-              size={16}
-              style={{ color: getRelevanceColor(analysis.habitRelevance) }}
-            />
-            {analysis.habitRelevance}
+            <Target size={16} />
+            <span style={{ textTransform: "capitalize" }}>
+              {analysis.habitRelevance}
+            </span>
           </div>
         </div>
 
         <div className="analysis-item">
           <div className="analysis-label">Reward Status</div>
-          <div
-            className="analysis-value reward-status"
-            style={{ color: rewardStatus.color }}
-          >
-            {rewardStatus.icon}
-            {rewardStatus.text}
+          <div className="analysis-value">
+            <Award size={16} />
+            <span
+              className="reward-status"
+              style={{
+                color: getRewardStatusColor(analysis.rewardRecommendation),
+                textTransform: "capitalize",
+              }}
+            >
+              {analysis.rewardRecommendation}
+            </span>
           </div>
         </div>
+
+        {analysis.mediaAnalysis && (
+          <div className="analysis-item">
+            <div className="analysis-label">Media Evidence</div>
+            <div className="analysis-value">
+              <Eye size={16} />
+              <span style={{ textTransform: "capitalize" }}>
+                {analysis.mediaAnalysis.mediaRelevance}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {analysis.suggestion && (
         <div className="ai-suggestion">
           <div className="suggestion-header">
-            <Award size={16} />
-            AI Suggestion
+            <TrendingUp size={16} />
+            AI Insight
           </div>
           <p>{analysis.suggestion}</p>
         </div>
       )}
 
-      <div className="reward-breakdown">
-        <div className="reward-info">
-          <div className="reward-amount">
-            {analysis.rewardRecommendation === "approved" ? (
-              <span className="approved">+{habit.stakingAmount} sats</span>
-            ) : (
-              <span className="pending">0 sats</span>
-            )}
+      {analysis.rewardRecommendation && (
+        <div className="reward-breakdown">
+          <div className="reward-info">
+            <div className="reward-amount">
+              <Zap size={16} />
+              <span className={analysis.rewardRecommendation}>
+                {analysis.rewardRecommendation === "approved"
+                  ? `+${habit.stakingAmount} sats`
+                  : "Reward Pending"}
+              </span>
+            </div>
+            <div className="reward-description">
+              {analysis.rewardRecommendation === "approved"
+                ? "Congratulations! Your progress has been verified."
+                : "Complete the habit to earn your reward."}
+            </div>
           </div>
-          <div className="reward-description">{rewardStatus.description}</div>
         </div>
-      </div>
+      )}
 
       {analysis.keywords && analysis.keywords.length > 0 && (
         <div className="keywords-section">
-          <div className="keywords-label">Key Topics:</div>
+          <span className="keywords-label">Keywords:</span>
           <div className="keywords">
             {analysis.keywords.map((keyword, index) => (
               <span key={index} className="keyword-tag">
                 {keyword}
               </span>
             ))}
+          </div>
+        </div>
+      )}
+
+      {analysis.mediaAnalysis && (
+        <div className="media-analysis-section">
+          <div className="analysis-label">Media Analysis</div>
+          <div className="media-analysis-details">
+            <div className="media-stat">
+              <span className="stat-label">Type:</span>
+              <span className="stat-value">
+                {analysis.mediaAnalysis.mediaType}
+              </span>
+            </div>
+            <div className="media-stat">
+              <span className="stat-label">Count:</span>
+              <span className="stat-value">
+                {analysis.mediaAnalysis.mediaCount}
+              </span>
+            </div>
+            <div className="media-stat">
+              <span className="stat-label">Relevance:</span>
+              <span className="stat-value">
+                {analysis.mediaAnalysis.mediaRelevance}
+              </span>
+            </div>
           </div>
         </div>
       )}
