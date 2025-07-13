@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import QRCode from "react-qr-code";
 import { useDispatch } from "react-redux";
 import {
   X,
@@ -52,7 +53,9 @@ export default function PaymentModal({
     setWalletConnected(connected);
 
     if (!connected) {
-      setError("Please connect a lightning wallet to proceed with payments.");
+      setError(
+        "Please add a lightning address to your Nostr profile to proceed with payments."
+      );
       setPaymentStep("failed");
     } else {
       setPaymentStep("preparing");
@@ -72,19 +75,51 @@ export default function PaymentModal({
 
     try {
       let result;
+      const walletInfo = getWalletInfo(userData);
 
       if (paymentType === "staking") {
         setPaymentProgress(30);
-        // For staking, we simulate the process since we need an escrow service in real implementation
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate processing
 
-        result = await payHabitStaking(userData, amount, habitName);
-        setPaymentProgress(80);
+        if (walletInfo?.type === "nwc") {
+          // Automated staking with NWC
+          result = await payHabitStaking(userData, amount, habitName);
+          setPaymentProgress(80);
+        } else {
+          // Lightning address only - generate invoice and show to user
+          const lnAddress = userData.lud16 || userData.lud06;
+          if (!lnAddress) {
+            throw new Error("No lightning address found for staking");
+          }
+
+          const description = `Staking ${amount} sats for ${habitName}`;
+          const invoiceData = await fetchLnurlInvoice(
+            lnAddress,
+            amount,
+            description,
+            userData.pubkey
+          );
+
+          if (!invoiceData?.invoice) {
+            throw new Error("Failed to generate staking invoice");
+          }
+
+          setInvoice(invoiceData.invoice);
+          result = {
+            success: true,
+            purpose: "staking",
+            habitName,
+            amount,
+            invoice: invoiceData.invoice,
+            description,
+            paymentMethod: "lightning_address",
+          };
+          setPaymentProgress(80);
+        }
       } else if (paymentType === "reward") {
         setPaymentProgress(20);
 
         // Get user's lightning address for reward payment
-        const lnAddress = await getLightningAddress(userData.pubkey);
+        const lnAddress = userData.lud16 || userData.lud06;
         if (!lnAddress) {
           throw new Error("No lightning address found for reward payment");
         }
@@ -96,7 +131,8 @@ export default function PaymentModal({
         const invoiceData = await fetchLnurlInvoice(
           lnAddress,
           amount,
-          description
+          description,
+          userData.pubkey
         );
 
         if (!invoiceData?.invoice) {
@@ -106,13 +142,29 @@ export default function PaymentModal({
         setInvoice(invoiceData.invoice);
         setPaymentProgress(60);
 
-        // Process payment via NWC
-        result = await sendNwcPayment(
-          userData,
-          invoiceData.invoice,
-          amount,
-          description
-        );
+        // For rewards, we can proceed differently based on wallet type
+        if (walletInfo?.type === "nwc") {
+          // Automated payment with NWC
+          result = await sendNwcPayment(
+            userData,
+            invoiceData.invoice,
+            amount,
+            description
+          );
+        } else {
+          // Lightning address only - simulate successful reward generation
+          result = {
+            success: true,
+            purpose: "reward",
+            habitName,
+            streakDays,
+            rewardAmount: amount,
+            invoice: invoiceData.invoice,
+            description,
+            paymentMethod: "lightning_address",
+          };
+        }
+
         setPaymentProgress(80);
       }
 
@@ -126,13 +178,22 @@ export default function PaymentModal({
           type: "success",
           message:
             paymentType === "staking"
-              ? `🛡️ Successfully staked ${amount} sats for ${habitName}!`
-              : `🎉 Reward of ${amount} sats sent for your ${streakDays} day streak!`,
+              ? result && result.paymentMethod === "lightning_address"
+                ? `🛡️ Invoice generated! Pay ${amount} sats to stake for ${habitName}.`
+                : `🛡️ Successfully staked ${amount} sats for ${habitName}!`
+              : `🎉 Reward of ${amount} sats generated for your ${streakDays} day streak!`,
         })
       );
 
       // Call success callback
-      if (onPaymentSuccess) {
+      if (
+        onPaymentSuccess &&
+        !(
+          paymentType === "staking" &&
+          result.paymentMethod === "lightning_address"
+        )
+      ) {
+        // Only auto-close for automated NWC payments; for manual invoice let user close
         onPaymentSuccess(result);
       }
     } catch (error) {
@@ -222,7 +283,14 @@ export default function PaymentModal({
             </div>
             {walletInfo && (
               <div className="wallet-meta">
-                <p className="wallet-relay">Relay: {walletInfo.relay}</p>
+                {walletInfo.type === "nwc" && (
+                  <p className="wallet-relay">NWC Relay: {walletInfo.relay}</p>
+                )}
+                {walletInfo.type === "lightning_address" && (
+                  <p className="wallet-address">
+                    ⚡ {walletInfo.lightningAddress}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -277,15 +345,65 @@ export default function PaymentModal({
           {/* Success State */}
           {paymentStep === "success" && paymentDetails && (
             <div className="payment-success">
-              <div className="success-icon">
-                <CheckCircle size={48} />
-              </div>
-              <h3>Payment Successful!</h3>
+              {(() => {
+                const isInvoice =
+                  paymentDetails.paymentMethod === "lightning_address";
+                return (
+                  <>
+                    <div className="success-icon">
+                      <CheckCircle size={48} />
+                    </div>
+                    <h3>
+                      {isInvoice ? "Invoice Generated" : "Payment Successful!"}
+                    </h3>
+                  </>
+                );
+              })()}
               <p>
                 {paymentType === "staking"
-                  ? `Your ${amount} sats have been staked for ${habitName}. Complete your daily habits to earn rewards!`
+                  ? paymentDetails.paymentMethod === "lightning_address"
+                    ? `Your staking invoice has been generated! Pay ${amount} sats to stake for ${habitName}.`
+                    : `Your ${amount} sats have been staked for ${habitName}. Complete your daily habits to earn rewards!`
+                  : paymentDetails.paymentMethod === "lightning_address"
+                  ? `Your reward invoice has been generated! ${amount} sats for your ${streakDays} day streak on ${habitName}. Copy the invoice below to claim your reward.`
                   : `Congratulations! You've earned ${amount} sats for your ${streakDays} day streak on ${habitName}.`}
               </p>
+              {paymentDetails.invoice &&
+                paymentDetails.paymentMethod === "lightning_address" && (
+                  <div className="invoice-display">
+                    <div className="invoice-qr">
+                      <QRCode value={paymentDetails.invoice} size={160} />
+                    </div>
+                    <p className="invoice-label">Lightning Invoice:</p>
+                    <textarea
+                      className="invoice-text"
+                      readOnly
+                      value={paymentDetails.invoice}
+                      onClick={(e) => e.target.select()}
+                    />
+                    <button
+                      className="copy-invoice-btn"
+                      onClick={() => {
+                        navigator.clipboard.writeText(paymentDetails.invoice);
+                        dispatch(
+                          addToast({
+                            type: "success",
+                            message: "Invoice copied to clipboard!",
+                          })
+                        );
+                      }}
+                    >
+                      Copy Invoice
+                    </button>
+                    <div className="invoice-instructions">
+                      <p>
+                        Scan the QR with your lightning wallet or paste the
+                        invoice to pay. After payment is confirmed your
+                        stake/reward will be recorded automatically.
+                      </p>
+                    </div>
+                  </div>
+                )}
               {paymentDetails.preimage && (
                 <div className="payment-proof">
                   <p className="proof-label">Payment Proof:</p>
@@ -307,10 +425,20 @@ export default function PaymentModal({
                 <div className="wallet-help">
                   <p>To make payments, you need to:</p>
                   <ul>
-                    <li>Connect a NWC-compatible wallet</li>
-                    <li>Add a lightning address to your Nostr profile</li>
+                    <li>
+                      Add a lightning address (lud16) to your Nostr profile
+                    </li>
+                    <li>
+                      Or connect a NWC-compatible wallet for automated payments
+                    </li>
                     <li>Ensure your wallet has sufficient balance</li>
                   </ul>
+                  <div className="wallet-help-note">
+                    <p>
+                      <strong>Note:</strong> With just a lightning address, you
+                      can receive rewards but staking requires manual payment.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

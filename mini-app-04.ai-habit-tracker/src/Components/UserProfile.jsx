@@ -1,5 +1,5 @@
 import React from "react";
-import { User, Zap, CheckCircle, AlertCircle } from "lucide-react";
+import { User, Zap, CheckCircle } from "lucide-react";
 
 export default function UserProfile({ userData, hostUrl }) {
   if (!userData) {
@@ -13,10 +13,6 @@ export default function UserProfile({ userData, hostUrl }) {
       </div>
     );
   }
-
-  // Check if user has Lightning wallet connected
-  const hasLightningWallet = userData.lud06 || userData.lud16;
-  const lightningAddress = userData.lud16 || userData.lud06;
 
   return (
     <div className="user-profile-section">
@@ -53,30 +49,12 @@ export default function UserProfile({ userData, hostUrl }) {
             <CheckCircle size={16} />
             <span>Connected</span>
           </div>
-
-          {hasLightningWallet ? (
-            <div className="lightning-badge connected">
-              <Zap size={16} />
-              <span>Lightning Connected</span>
-            </div>
-          ) : (
-            <div className="lightning-badge disconnected">
-              <AlertCircle size={16} />
-              <span>Connect Lightning Wallet</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Show Lightning address if available */}
-      {hasLightningWallet && (
-        <div className="lightning-info">
-          <div className="lightning-address">
-            <Zap size={14} />
-            <span>{lightningAddress}</span>
+          <div className="lightning-badge">
+            <Zap size={16} />
+            <span>Lightning Ready</span>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

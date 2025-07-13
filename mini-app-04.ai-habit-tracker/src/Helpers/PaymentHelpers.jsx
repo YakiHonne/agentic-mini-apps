@@ -58,11 +58,53 @@ export const getLightningAddress = async (pubkey) => {
   return null;
 };
 
+// Build and sign a NIP-57 zap request (kind 9734)
+export const buildZapRequest = async (
+  senderPubkey,
+  recipientPubkey,
+  lnurl,
+  amountMsat,
+  relays = [],
+  content = ""
+) => {
+  try {
+    const event = {
+      kind: 9734,
+      content: content,
+      created_at: Math.floor(Date.now() / 1000),
+      pubkey: senderPubkey,
+      tags: [
+        ["relays", ...relays],
+        ["amount", amountMsat.toString()],
+        ["lnurl", lnurl],
+        ["p", recipientPubkey],
+      ],
+    };
+
+    // If we have window.nostr (NIP-07) ask it to sign.
+    if (
+      typeof window !== "undefined" &&
+      window.nostr &&
+      window.nostr.signEvent
+    ) {
+      const signed = await window.nostr.signEvent(event);
+      return encodeURIComponent(JSON.stringify(signed));
+    }
+
+    // Otherwise we can only proceed if we somehow have sender's secret (not recommended in browser).
+    return null;
+  } catch (err) {
+    console.error("Failed to build zap request", err);
+    return null;
+  }
+};
+
 // Fetch LNURL invoice from lightning address
 export const fetchLnurlInvoice = async (
   lnAddress,
   amount,
-  description = ""
+  description = "",
+  senderPubkey = null
 ) => {
   let lnurl;
 
@@ -85,9 +127,29 @@ export const fetchLnurlInvoice = async (
 
     // Step 2: Request invoice
     const amountMsat = amount * 1000; // Convert sats to msats
-    const callbackUrl = `${data.callback}${
+    let callbackUrl = `${data.callback}${
       data.callback.includes("?") ? "&" : "?"
     }amount=${amountMsat}`;
+
+    // If server allows zap requests build one
+    if (data.allowsNostr && data.nostrPubkey && senderPubkey) {
+      // Dynamically import relay list to avoid circular dep
+      const relaysModule = await import("../Content/Relays.js");
+      const relays = relaysModule.default || [];
+
+      const zapReq = await buildZapRequest(
+        senderPubkey,
+        data.nostrPubkey,
+        lnurl,
+        amountMsat,
+        relays,
+        description
+      );
+
+      if (zapReq) {
+        callbackUrl += `&nostr=${zapReq}&lnurl=${encodeURIComponent(lnurl)}`;
+      }
+    }
 
     if (description) {
       callbackUrl += `&comment=${encodeURIComponent(description)}`;
@@ -226,7 +288,12 @@ export const generateStakingInvoice = async (userPubkey, amount, habitName) => {
     }
 
     const description = `Staking ${amount} sats for habit: ${habitName}`;
-    const invoiceData = await fetchLnurlInvoice(lnAddress, amount, description);
+    const invoiceData = await fetchLnurlInvoice(
+      lnAddress,
+      amount,
+      description,
+      userPubkey
+    );
 
     if (!invoiceData || !invoiceData.invoice) {
       throw new Error("Failed to generate staking invoice");
@@ -288,7 +355,12 @@ export const processHabitReward = async (
     }
 
     const description = `Habit reward: ${amount} sats for ${habitName} (${streakDays} day streak)`;
-    const invoiceData = await fetchLnurlInvoice(lnAddress, amount, description);
+    const invoiceData = await fetchLnurlInvoice(
+      lnAddress,
+      amount,
+      description,
+      userPubkey
+    );
 
     if (!invoiceData || !invoiceData.invoice) {
       throw new Error("Failed to generate reward invoice");
@@ -317,34 +389,57 @@ export const processHabitReward = async (
 
 // Check wallet connection
 export const checkWalletConnection = (userMetadata) => {
+  // Check for NWC URI (for sending payments)
   const nwcUri = userMetadata?.nwc_uri;
-  if (!nwcUri) return false;
-
-  try {
-    const nwcConfig = parseNwcUri(nwcUri);
-    return !!(nwcConfig.walletPubkey && nwcConfig.relay && nwcConfig.secret);
-  } catch {
-    return false;
+  if (nwcUri) {
+    try {
+      const nwcConfig = parseNwcUri(nwcUri);
+      return !!(nwcConfig.walletPubkey && nwcConfig.relay && nwcConfig.secret);
+    } catch {
+      // Fall through to check lightning address
+    }
   }
+
+  // Check for lightning address (for receiving payments)
+  const lightningAddress = userMetadata?.lud16 || userMetadata?.lud06;
+  if (lightningAddress) {
+    return true;
+  }
+
+  return false;
 };
 
 // Get wallet info
 export const getWalletInfo = (userMetadata) => {
+  // First check for NWC URI
   const nwcUri = userMetadata?.nwc_uri;
-  if (!nwcUri) return null;
-
-  try {
-    const nwcConfig = parseNwcUri(nwcUri);
-    return {
-      connected: !!(
-        nwcConfig.walletPubkey &&
-        nwcConfig.relay &&
-        nwcConfig.secret
-      ),
-      walletPubkey: nwcConfig.walletPubkey,
-      relay: nwcConfig.relay,
-    };
-  } catch {
-    return null;
+  if (nwcUri) {
+    try {
+      const nwcConfig = parseNwcUri(nwcUri);
+      return {
+        connected: !!(
+          nwcConfig.walletPubkey &&
+          nwcConfig.relay &&
+          nwcConfig.secret
+        ),
+        walletPubkey: nwcConfig.walletPubkey,
+        relay: nwcConfig.relay,
+        type: "nwc",
+      };
+    } catch {
+      // Fall through to check lightning address
+    }
   }
+
+  // Check for lightning address
+  const lightningAddress = userMetadata?.lud16 || userMetadata?.lud06;
+  if (lightningAddress) {
+    return {
+      connected: true,
+      lightningAddress: lightningAddress,
+      type: "lightning_address",
+    };
+  }
+
+  return null;
 };
