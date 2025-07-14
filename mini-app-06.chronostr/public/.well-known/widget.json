@@ -1,0 +1,15 @@
+{
+  "pubkey": "a95bc334146023ea109af166773f7c93ff166d0f243d7388123a5e5b2393a2a3",
+  "widget": {
+    "title": "Chronostr | Schedule and Join Events",
+    "appUrl": "https://chronostr.vercel.app/",
+    "iconUrl": "https://chronostr.vercel.app/chronostr.png",
+    "imageUrl": "https://chronostr.vercel.app/chronostr.png",
+    "buttonTitle": "Create and Schedule",
+    "tags": [
+      "nostr",
+      "nip-52",
+      "calendar events"
+    ]
+  }
+}

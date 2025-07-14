@@ -1,0 +1,69 @@
+/* components/Calendar.module.css */
+
+.calendarContainer {
+  width: 100%;
+  border: 1px solid var(--nextui-colors-border);
+  border-radius: var(--nextui-radius-lg);
+  background: var(--nextui-colors-content1);
+  padding: 0.5rem;
+}
+
+.calendarContainer .react-calendar__navigation button {
+  color: var(--nextui-colors-foreground);
+  font-weight: 600;
+}
+
+.calendarContainer .react-calendar__navigation button:enabled:hover,
+.calendarContainer .react-calendar__navigation button:enabled:focus {
+  background-color: var(--nextui-colors-content2);
+}
+
+.calendarContainer .react-calendar__month-view__weekdays__weekday {
+  color: var(--nextui-colors-foreground-500);
+  text-transform: uppercase;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.calendarContainer .react-calendar__tile {
+  color: var(--nextui-colors-foreground);
+  border-radius: var(--nextui-radius-md);
+}
+
+.calendarContainer .react-calendar__tile:enabled:hover,
+.calendarContainer .react-calendar__tile:enabled:focus {
+  background: var(--nextui-colors-content3);
+}
+
+/* Current Day */
+.calendarContainer .react-calendar__tile--now {
+  background: var(--nextui-colors-primary-50);
+  color: var(--nextui-colors-primary);
+  font-weight: 600;
+}
+
+/* Active/Selected Day */
+.calendarContainer .react-calendar__tile--active {
+  background: var(--nextui-colors-primary);
+  color: var(--nextui-colors-primary-foreground);
+}
+
+.calendarContainer .react-calendar__tile--active:enabled:hover,
+.calendarContainer .react-calendar__tile--active:enabled:focus {
+  background: var(--nextui-colors-primary-600);
+}
+
+
+.hasEvent {
+    background-color: rgb(9, 86, 134);
+    border-radius: 4px;
+    color: var(--nextui-colors-primary);
+    font-weight: 600;   
+}
+/* .eventDot {
+    height: 6px;
+    width: 6px;
+    background-color: var(--nextui-colors-primary);
+    border-radius: 50%;
+    margin: 0.15rem auto 0 auto;
+} */
