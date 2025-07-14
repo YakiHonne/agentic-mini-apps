@@ -67,6 +67,18 @@ sequenceDiagram
 
 ---
 
+## How it Works (TL;DR)
+
+1️⃣ **Stake** – choose a habit, set how many sats you’re willing to lock in.
+
+2️⃣ **Post** – tap “Post Update”, share your progress. Our AI gives it a quick honesty check.
+
+3️⃣ **Zap** – if you’re on-track the stake **plus** a reward is zapped back to your wallet (auto-pay via NWC or a QR invoice).
+
+_(Swipe down for screenshots & GIFs – coming soon!)_
+
+---
+
 ## Running Locally (devs only)
 
 ```bash

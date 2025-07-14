@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import HabitTracker from "../Components/HabitTracker";
 import UserProfile from "../Components/UserProfile";
+import HowItWorks from "../Components/HowItWorks";
 import { setHabits } from "../Store/habitTrackerSlice";
 
 export default function Main({ userData, hostUrl }) {
@@ -41,6 +42,8 @@ export default function Main({ userData, hostUrl }) {
         <div className="header-section">
           <h1>⚡ ZapMindr</h1>
           <p className="subtitle">Stake sats, build habits, earn rewards</p>
+
+          <HowItWorks />
         </div>
 
         <UserProfile userData={userData} hostUrl={hostUrl} />
