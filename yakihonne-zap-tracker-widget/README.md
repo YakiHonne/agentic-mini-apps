@@ -58,7 +58,7 @@ The widget configuration is stored in `public/.well-known/widget.json`:
 
 ```json
 {
-  "pubkey": "8535603a45cb8472b6749c0f9fa5d8a93cc223ef6572b47fbb72916c1eb809d7",
+  "pubkey": "pubkey",
   "widget": {
     "title": "ZapTracker",
     "appUrl": "https://zap-tracker.netlify.app/",
