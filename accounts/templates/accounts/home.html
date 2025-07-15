@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bounty Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        body {
+            display: flex;
+            min-height: 100vh;
+            background: #0f172a;
+            color: #f8fafc;
+        }
+        
+        /* Left Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #1e293b;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid #334155;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #10b981 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            padding: 10px 0;
+        }
+        
+        .nav-links {
+            margin-top: 20px;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background: #334155;
+            transform: translateX(5px);
+            color: white;
+        }
+        
+        .nav-link i {
+            margin-right: 12px;
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* User Section */
+        .user-section {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
+        }
+        
+        .user-section:hover {
+            background: #334155;
+            border-color: #475569;
+        }
+        
+        .profile-pic-container {
+            position: relative;
+            margin-right: 12px;
+        }
+        
+        .profile-pic-container::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #10b981 100%);
+            border-radius: 50%;
+            z-index: -1;
+            animation: spin-slow 10s linear infinite;
+        }
+        
+        @keyframes spin-slow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .user-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #1e293b;
+        }
+        
+        .user-info {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-role {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+        
+        .sign-out {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        
+        .sign-out:hover {
+            color: #f8fafc;
+        }
+        
+        /* Right Content */
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: #0f172a;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8b5cf6 0%, #10b981 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            flex: 1;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 8px 15px;
+            width: 300px;
+            border: 1px solid #334155;
+        }
+        
+        .search-bar input {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 5px;
+            width: 100%;
+            outline: none;
+        }
+        
+        .search-bar i {
+            color: #94a3b8;
+            margin-right: 10px;
+        }
+        
+        .new-bounty-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #10b981 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        
+        .new-bounty-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);
+        }
+        
+        .new-bounty-btn i {
+            margin-right: 8px;
+        }
+        
+        .bounty-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .bounty-card {
+            background: linear-gradient(145deg, #1e293b, #1a2533);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bounty-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            border-color: #475569;
+        }
+        
+        .bounty-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #8b5cf6, #10b981);
+        }
+        
+        .bounty-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .bounty-user-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 12px;
+            object-fit: cover;
+            border: 2px solid #334155;
+        }
+        
+        .bounty-user-info {
+            flex: 1;
+        }
+        
+        .bounty-user {
+            font-weight: 600;
+            color: #f8fafc;
+        }
+        
+        .bounty-via {
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+        
+        .bounty-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 10px 0;
+            color: #f8fafc;
+        }
+        
+        .bounty-reward {
+            display: inline-block;
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .bounty-details {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+        
+        .bounty-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #334155;
+        }
+        
+        .bounty-tags {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .bounty-tag {
+            background: rgba(100, 116, 139, 0.2);
+            color: #94a3b8;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+        
+        .bounty-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .bounty-btn {
+            background: rgba(139, 92, 246, 0.1);
+            color: #8b5cf6;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        
+        .bounty-btn:hover {
+            background: rgba(139, 92, 246, 0.2);
+        }
+        
+        .bounty-btn.primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #10b981 100%);
+            color: white;
+        }
+        
+        .bounty-btn.primary:hover {
+            opacity: 0.9;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .bounty-card {
+            animation: fadeIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        
+        .bounty-card:nth-child(1) { animation-delay: 0.1s; }
+        .bounty-card:nth-child(2) { animation-delay: 0.2s; }
+        .bounty-card:nth-child(3) { animation-delay: 0.3s; }
+        .bounty-card:nth-child(4) { animation-delay: 0.4s; }
+        .bounty-card:nth-child(5) { animation-delay: 0.5s; }
+    </style>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+        <div>
+            <div class="logo">GEO STATS</div>
+            <div class="nav-links">
+                <a href="#" class="nav-link active">
+                    <i class="fas fa-bolt"></i> Bounties
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-trophy"></i> Leaderboard
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-search"></i> Discover
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-bell"></i> Notifications
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-plus-circle"></i> Create Bounty
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </div>
+        </div>
+        
+        <!-- User Section -->
+        <div class="user-section">
+            <div class="profile-pic-container">
+                <img src="{{ user.profile.profile_pic.url }}" alt="Profile" class="user-pic">
+            </div>
+            <div class="user-info">
+                <div class="user-name">{{ user.username }}</div>
+                <div class="user-role">Bounty Hunter</div>
+            </div>
+            <button class="sign-out" onclick="window.location.href='{% url 'logout' %}'">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Right Content -->
+    <div class="content">
+        <div class="header">
+            <h1>Available Bounties</h1>
+            <div class="header-actions">
+                {% if user.is_authenticated %}
+                <a href="{% url 'create_bounty' %}" class="new-bounty-btn">
+                    <i class="fas fa-plus"></i> New Bounty
+                </a>
+                {% endif %}
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search bounties...">
+                </div>
+            </div>
+        </div>
+        
+        <div class="bounty-grid">
+            {% for bounty in bounties %}
+            <div class="bounty-card">
+                <div class="bounty-header">
+                    <img src="{{ bounty.hunter.profile.profile_pic.url }}" alt="Profile" class="bounty-user-pic">
+                    <div class="bounty-user-info">
+                        <div class="bounty-user">{{ bounty.hunter.username }}</div>
+                        <div class="bounty-via">via geosats</div>
+                    </div>
+                </div>
+                <div class="bounty-title">{{ bounty.title }}</div>
+                <div class="bounty-reward">KES {{ bounty.reward }}</div>
+                <div class="bounty-details">{{ bounty.description }}</div>
+                <div class="bounty-footer">
+                    <div class="bounty-tags">
+                        <span class="bounty-tag">GIS</span>
+                        <span class="bounty-tag">Mapping</span>
+                        <span class="bounty-tag">Survey</span>
+                    </div>
+                    <div class="bounty-actions">
+                        <button class="bounty-btn">
+                            <i class="far fa-bookmark"></i>
+                        </button>
+                        <button class="bounty-btn primary">
+                            Claim
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // Simple animation for when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add any client-side interactivity here
+            const bountyCards = document.querySelectorAll('.bounty-card');
+            
+            bountyCards.forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('bounty-btn')) {
+                        // Open bounty details modal or page
+                        console.log('Opening bounty details');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
