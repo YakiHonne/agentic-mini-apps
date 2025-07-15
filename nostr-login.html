@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <title>Nostr login Interface</title>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+   <link rel="stylesheet" href="yaki-CSS1/nostr-login.css">
+  </head>
+  <body>
+    <div class="main-div">
+      <div class="login-div1"></div>
+      <div class="login-div2">
+        <img src="images/Nostr.png" class="nostr-image">
+        <div class="wel-come">Welcome back</div>
+        <div class="options">Glad to see you again select method to login</div>
+        <div>
+          <div class="relative-1">
+            <div class="absolute-1">
+              <img src="images/envelope-solid.svg" class="envelope-solid">
+            </div>            
+            <input type="email" placeholder="Email" class="email-text-input" id="email">
+          </div>
+          <div>
+            <small id="emailMessage" class="messages"></small>
+          </div>
+        </div>
+        <div>
+          <div class="relative-1">
+            <div class="absolute-01">
+              <img src="images/lock-solid.svg" class="lock-solid">
+            </div>
+           
+            <input type="password" placeholder= "password" class="password-text-input" id="password">
+            <div class="absolute-2">
+              <img src="icons/eye-opened.svg" class="eye-solid" id="togglePassword">
+            </div>
+          </div>
+          <div class="div-for-RF">
+            <input type="checkbox" class="reminder">
+            <span class="remember-class">Remember me</span>
+            <a href="" class="forgot-link">
+              <span class="forgot-class">Forgot password?</span>
+            </a>
+            
+          </div>
+          <a href="nostr-App-page.html" style="text-decoration: none;">
+            <div class="login-class js-login-class">Log in</div>
+          </a>
+        
+          <div class="division">
+            <div class="line-1">_______________</div>
+            <div class="center-text">
+              or continue with
+             </div>
+            <div class="line-2">_______________</div>
+          </div>
+        </div>
+        <div class="link-G-A-divs">
+          <div class="google-div">
+            <img src="images/google_icon_2025-logo_brandlogos.net_qm5ka-300x307.png" class="google-image">
+            <span class="google-text">Google</span>
+          </div>
+          <div class="apple-div">
+            <img src="images/Apple.image.png" class="apple-image">
+            <span class="apple-text">Apple</span>
+          </div>
+        </div> 
+        <div class="link-to-signup">
+          Dont have an account? <a href="nostr-Interface.html" class="sign-up-link">create an account</a>
+        </div>       
+      </div>
+    </div>
+
+    <script src="Nostr-JavaScriptes/nostr-sign-in.js"></script>
+  </body>
+</html>
