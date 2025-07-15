@@ -1085,6 +1085,7 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
           amount={pendingReward.amount}
           habitName={pendingReward.habitName}
           userData={userData}
+          hostUrl={hostUrl}
           streakDays={pendingReward.streakDays}
           onPaymentSuccess={handleRewardPaymentSuccess}
           onPaymentFailure={handleRewardPaymentFailure}

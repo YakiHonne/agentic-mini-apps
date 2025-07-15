@@ -33,6 +33,7 @@ export default function PaymentModal({
   streakDays = 0,
   onPaymentSuccess,
   onPaymentFailure,
+  hostUrl = null,
 }) {
   const dispatch = useDispatch();
   const [paymentStep, setPaymentStep] = useState("preparing"); // preparing, processing, success, failed
@@ -82,7 +83,7 @@ export default function PaymentModal({
 
         if (walletInfo?.type === "nwc") {
           // Automated staking with NWC
-          result = await payHabitStaking(userData, amount, habitName);
+          result = await payHabitStaking(userData, amount, habitName, hostUrl);
           setPaymentProgress(80);
         } else {
           // Lightning address only - generate invoice and show to user
@@ -96,7 +97,8 @@ export default function PaymentModal({
             lnAddress,
             amount,
             description,
-            userData.pubkey
+            userData.pubkey,
+            hostUrl
           );
 
           if (!invoiceData?.invoice) {
@@ -132,7 +134,8 @@ export default function PaymentModal({
           lnAddress,
           amount,
           description,
-          userData.pubkey
+          userData.pubkey,
+          hostUrl
         );
 
         if (!invoiceData?.invoice) {
@@ -149,7 +152,8 @@ export default function PaymentModal({
             userData,
             invoiceData.invoice,
             amount,
-            description
+            description,
+            hostUrl
           );
         } else {
           // Lightning address only - simulate successful reward generation

@@ -145,6 +145,7 @@ export default function HabitTracker({ userData, hostUrl }) {
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateHabit}
           userData={userData}
+          hostUrl={hostUrl}
         />
       )}
 

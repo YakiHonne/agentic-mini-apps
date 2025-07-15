@@ -75,8 +75,6 @@ sequenceDiagram
 
 3️⃣ **Zap** – if you’re on-track the stake **plus** a reward is zapped back to your wallet (auto-pay via NWC or a QR invoice).
 
-_(Swipe down for screenshots & GIFs – coming soon!)_
-
 ---
 
 ## Running Locally (devs only)

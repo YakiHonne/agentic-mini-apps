@@ -1,10 +1,5 @@
-import {
-  SimplePool,
-  nip04,
-  getPublicKey,
-  Relay,
-  finalizeEvent,
-} from "nostr-tools";
+import { SimplePool, nip04, getPublicKey, Relay } from "nostr-tools";
+import SMHandler from "smart-widget-handler";
 
 // Utility: hex string to Uint8Array
 function hexToBytes(hex) {
@@ -58,21 +53,21 @@ export const getLightningAddress = async (pubkey) => {
   return null;
 };
 
-// Build and sign a NIP-57 zap request (kind 9734)
+// Build and sign a NIP-57 zap request (kind 9734) using SMHandler
 export const buildZapRequest = async (
   senderPubkey,
   recipientPubkey,
   lnurl,
   amountMsat,
   relays = [],
-  content = ""
+  content = "",
+  hostUrl = null
 ) => {
   try {
     const event = {
       kind: 9734,
       content: content,
       created_at: Math.floor(Date.now() / 1000),
-      pubkey: senderPubkey,
       tags: [
         ["relays", ...relays],
         ["amount", amountMsat.toString()],
@@ -81,7 +76,18 @@ export const buildZapRequest = async (
       ],
     };
 
-    // If we have window.nostr (NIP-07) ask it to sign.
+    // Use SMHandler.client for signing if hostUrl is available
+    if (hostUrl && SMHandler?.client?.requestEventSign) {
+      try {
+        const signed = await SMHandler.client.requestEventSign(event, hostUrl);
+        return encodeURIComponent(JSON.stringify(signed));
+      } catch (error) {
+        console.error("SMHandler signing failed:", error);
+        // Fall back to window.nostr if available
+      }
+    }
+
+    // Fallback to window.nostr (NIP-07) if SMHandler fails
     if (
       typeof window !== "undefined" &&
       window.nostr &&
@@ -91,7 +97,8 @@ export const buildZapRequest = async (
       return encodeURIComponent(JSON.stringify(signed));
     }
 
-    // Otherwise we can only proceed if we somehow have sender's secret (not recommended in browser).
+    // If no signing method available, return null
+    console.warn("No signing method available for zap request");
     return null;
   } catch (err) {
     console.error("Failed to build zap request", err);
@@ -104,7 +111,8 @@ export const fetchLnurlInvoice = async (
   lnAddress,
   amount,
   description = "",
-  senderPubkey = null
+  senderPubkey = null,
+  hostUrl = null
 ) => {
   let lnurl;
 
@@ -143,7 +151,8 @@ export const fetchLnurlInvoice = async (
         lnurl,
         amountMsat,
         relays,
-        description
+        description,
+        hostUrl
       );
 
       if (zapReq) {
@@ -171,12 +180,13 @@ export const fetchLnurlInvoice = async (
   }
 };
 
-// Send NWC payment
+// Send NWC payment using SMHandler for signing
 export const sendNwcPayment = async (
   userMetadata,
   invoice,
   amount,
-  description = ""
+  description = "",
+  hostUrl = null
 ) => {
   const nwcUri = userMetadata?.nwc_uri;
   if (!nwcUri) {
@@ -217,7 +227,28 @@ export const sendNwcPayment = async (
       content: encryptedContent,
     };
 
-    const finalizedEvent = finalizeEvent(event, privkey);
+    // Try to use SMHandler for signing first
+    let finalizedEvent;
+    if (hostUrl && SMHandler?.client?.requestEventSign) {
+      try {
+        finalizedEvent = await SMHandler.client.requestEventSign(
+          event,
+          hostUrl
+        );
+      } catch (error) {
+        console.error(
+          "SMHandler signing failed, falling back to manual signing:",
+          error
+        );
+        // Fall back to manual signing with nostr-tools
+        const { finalizeEvent } = await import("nostr-tools");
+        finalizedEvent = finalizeEvent(event, privkey);
+      }
+    } else {
+      // Fall back to manual signing with nostr-tools
+      const { finalizeEvent } = await import("nostr-tools");
+      finalizedEvent = finalizeEvent(event, privkey);
+    }
 
     // Connect to relay and send payment
     const relayConn = new Relay(relay);
@@ -278,7 +309,12 @@ export const sendNwcPayment = async (
 };
 
 // Generate invoice for habit staking
-export const generateStakingInvoice = async (userPubkey, amount, habitName) => {
+export const generateStakingInvoice = async (
+  userPubkey,
+  amount,
+  habitName,
+  hostUrl = null
+) => {
   try {
     const lnAddress = await getLightningAddress(userPubkey);
     if (!lnAddress) {
@@ -292,7 +328,8 @@ export const generateStakingInvoice = async (userPubkey, amount, habitName) => {
       lnAddress,
       amount,
       description,
-      userPubkey
+      userPubkey,
+      hostUrl
     );
 
     if (!invoiceData || !invoiceData.invoice) {
@@ -312,7 +349,12 @@ export const generateStakingInvoice = async (userPubkey, amount, habitName) => {
 };
 
 // Pay habit staking
-export const payHabitStaking = async (userMetadata, amount, habitName) => {
+export const payHabitStaking = async (
+  userMetadata,
+  amount,
+  habitName,
+  hostUrl = null
+) => {
   try {
     // For staking, we could use a dedicated staking service or escrow
     // For now, we'll simulate the staking by creating a payment record
@@ -346,7 +388,8 @@ export const processHabitReward = async (
   userPubkey,
   amount,
   habitName,
-  streakDays
+  streakDays,
+  hostUrl = null
 ) => {
   try {
     const lnAddress = await getLightningAddress(userPubkey);
@@ -359,7 +402,8 @@ export const processHabitReward = async (
       lnAddress,
       amount,
       description,
-      userPubkey
+      userPubkey,
+      hostUrl
     );
 
     if (!invoiceData || !invoiceData.invoice) {
@@ -371,7 +415,8 @@ export const processHabitReward = async (
       userMetadata,
       invoiceData.invoice,
       amount,
-      description
+      description,
+      hostUrl
     );
 
     return {
