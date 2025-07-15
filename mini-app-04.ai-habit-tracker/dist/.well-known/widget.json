@@ -1,0 +1,11 @@
+{
+  "pubkey": "",
+  "widget": {
+    "title": "AI Habit Tracker",
+    "appUrl": "https://your-app-url.com",
+    "iconUrl": "https://your-app-url.com/icon.png",
+    "imageUrl": "https://your-app-url.com/thumbnail.png",
+    "buttonTitle": "Track Habits",
+    "tags": ["tool", "habit", "ai", "bitcoin", "tracker", "productivity"]
+  }
+}
