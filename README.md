@@ -185,3 +185,21 @@ Developers will build and deploy via the YakiHonne Programmable Smart Widgets Pr
 [![Action/Tool smart widgets mini-apps Part 2](https://img.youtube.com/vi/4NfMqjkRKnQ/0.jpg)](https://www.youtube.com/watch?v=4NfMqjkRKnQ)
 ### Action/Tool smart widgets mini-apps Part 3
 [![Action/Tool smart widgets mini-apps Part 3](https://img.youtube.com/vi/VGCEEGfIo_I/0.jpg)](https://www.youtube.com/watch?v=VGCEEGfIo_I)
+
+
+
+{
+  "pubkey": "52524fbb6588d0f8a73677fd3e4f0cefc204fd310f459bc6c476e23dae4025dc",
+  "widget": {
+    "title": "Bitstream Analytics",
+    "appUrl": "https://bitstreamanalytics.netlify.app/",
+    "iconUrl": "https://bitstreamanalytics.netlify.app/icon.jpg",
+    "imageUrl": "https://bitstreamanalytics.netlify.app/",
+    "buttonTitle": "Click to Learn",
+    "tags": [
+      "nostr",
+      "bitcoin",
+      "yakihonne"
+    ]
+  }
+}
