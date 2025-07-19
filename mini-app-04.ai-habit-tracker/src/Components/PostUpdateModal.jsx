@@ -16,7 +16,7 @@ import {
   Play,
   Eye,
 } from "lucide-react";
-import SMHandler from "smart-widget-handler";
+import SWHandler from "smart-widget-handler";
 import {
   addPost,
   setAiAnalysis,
@@ -24,12 +24,17 @@ import {
 } from "../Store/habitTrackerSlice";
 import { addToast } from "../Store/toastSlice";
 import AIAnalysisSection from "./AIAnalysisSection";
-import PaymentModal from "./PaymentModal";
 import {
   FileUpload,
   getVideoFromURL,
   checkRelayConnectivity,
 } from "../Helpers/Helpers";
+import {
+  calculateDailyRewardAmount,
+  calculateStreakStatus,
+  canCheckInToday,
+  getHabitCompletionStatus,
+} from "../Helpers/PaymentHelpers";
 import relaysOnPlatform from "../Content/Relays";
 
 export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
@@ -50,8 +55,7 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
   const [postingSuccess, setPostingSuccess] = useState(false); // Track overall success
   const [relayStatus, setRelayStatus] = useState(null); // Track relay connectivity info
   const [usedFallback, setUsedFallback] = useState(false); // Track if fallback was used
-  const [showRewardModal, setShowRewardModal] = useState(false); // Track reward payment modal
-  const [pendingReward, setPendingReward] = useState(null); // Track pending reward details
+  const [pendingReward, setPendingReward] = useState(null); // Track pending reward details for potential future use
 
   // Handle paste events for images
   useEffect(() => {
@@ -288,7 +292,7 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
           throw new Error("Host URL not available");
         }
 
-        result = await SMHandler.client.requestEventPublish(
+        result = await SWHandler.client.requestEventPublish(
           eventToPost,
           hostUrl
         );
@@ -323,7 +327,7 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
           console.log("Attempting minimal event:", minimalEvent);
 
           try {
-            result = await SMHandler.client.requestEventPublish(
+            result = await SWHandler.client.requestEventPublish(
               minimalEvent,
               hostUrl
             );
@@ -382,27 +386,86 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
 
       // If AI analysis suggests reward, update habit streak and show reward payment
       if (analysis && analysis.rewardRecommendation === "approved") {
-        dispatch(updateHabitStreak({ habitId: habit.id, success: true }));
+        // Check if user can check-in today
+        if (!canCheckInToday(habit.lastCompletedAt)) {
+          dispatch(
+            addToast({
+              type: "info",
+              message: `Already completed "${habit.name}" today! Come back tomorrow for your next reward.`,
+            })
+          );
+          setPostingComplete(true);
+          return;
+        }
+
+        // Check streak status and calculate new streak
+        const streakStatus = calculateStreakStatus(
+          habit.lastCompletedAt,
+          habit.currentStreak
+        );
+        const newStreak = streakStatus.streakBroken
+          ? 1
+          : habit.currentStreak + 1;
+
+        // Update habit streak first
+        dispatch(
+          updateHabitStreak({
+            habitId: habit.id,
+            success: true,
+            newStreak: newStreak,
+          })
+        );
         setStreakUpdated(true);
-        setRewardEarned(habit.stakingAmount);
+
+        // Calculate proper daily reward with streak bonus
+        const totalHabitDays = habit.totalCompletions + 1; // +1 for current completion
+        const rewardInfo = calculateDailyRewardAmount(
+          habit.stakingAmount || 0,
+          totalHabitDays,
+          newStreak
+        );
+
+        setRewardEarned(rewardInfo.totalReward);
         setPostingSuccess(true);
 
-        // Prepare reward payment details
+        // Show streak bonus message if applicable
+        if (streakStatus.streakBroken && habit.currentStreak > 0) {
+          dispatch(
+            addToast({
+              type: "warning",
+              message: `Streak reset for "${habit.name}". Starting fresh at day 1! 💪`,
+            })
+          );
+        }
+
+        // Prepare reward payment details with calculated amount
         const rewardDetails = {
-          amount: habit.stakingAmount,
+          amount: rewardInfo.totalReward,
+          baseReward: rewardInfo.baseReward,
+          streakBonus: rewardInfo.streakBonus,
+          stakedAmount: habit.stakingAmount || 0, // Original staked amount
           habitName: habit.name,
-          streakDays: habit.currentStreak + 1, // New streak count
-          description: `Reward for completing ${habit.name} - ${
-            habit.currentStreak + 1
-          } day streak!`,
+          streakDays: newStreak,
+          totalDays: totalHabitDays,
+          description: `Daily reward for ${habit.name} - Day ${totalHabitDays} (${newStreak} day streak)`,
         };
 
-        setPendingReward(rewardDetails);
+        // Show reward success message immediately - no payment modal needed
+        // since rewards are handled by the backend
+        let rewardMessage = `🎉 Great progress today! Your reward of ${rewardInfo.totalReward} sats will reach your wallet soon. Stay tuned!`;
 
-        // Show reward payment modal after a brief delay to see the success
-        setTimeout(() => {
-          setShowRewardModal(true);
-        }, 2000);
+        if (rewardInfo.streakBonus > 0) {
+          rewardMessage = `🎉 Amazing streak! Your reward of ${rewardInfo.totalReward} sats (${rewardInfo.baseReward} base + ${rewardInfo.streakBonus} streak bonus) will reach your wallet soon!`;
+        }
+
+        dispatch(
+          addToast({
+            type: "success",
+            message: rewardMessage,
+          })
+        );
+
+        setPendingReward(rewardDetails); // Keep for potential future use
       } else {
         setPostingSuccess(false);
       }
@@ -471,32 +534,6 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
 
   const handleCloseModal = () => {
     onClose();
-  };
-
-  // Handle reward payment success
-  const handleRewardPaymentSuccess = (paymentResult) => {
-    console.log("Reward payment successful:", paymentResult);
-    setShowRewardModal(false);
-
-    dispatch(
-      addToast({
-        type: "success",
-        message: `🎉 Reward of ${pendingReward?.amount} sats sent to your wallet!`,
-      })
-    );
-  };
-
-  // Handle reward payment failure
-  const handleRewardPaymentFailure = (error) => {
-    console.error("Reward payment failed:", error);
-    setShowRewardModal(false);
-
-    dispatch(
-      addToast({
-        type: "warning",
-        message: `Reward earned but payment failed: ${error.message}. Contact support to claim your ${pendingReward?.amount} sats.`,
-      })
-    );
   };
 
   // Validate connection state before posting
@@ -1075,22 +1112,6 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
           )}
         </div>
       </div>
-
-      {/* Reward Payment Modal */}
-      {showRewardModal && pendingReward && (
-        <PaymentModal
-          isOpen={showRewardModal}
-          onClose={() => setShowRewardModal(false)}
-          paymentType="reward"
-          amount={pendingReward.amount}
-          habitName={pendingReward.habitName}
-          userData={userData}
-          hostUrl={hostUrl}
-          streakDays={pendingReward.streakDays}
-          onPaymentSuccess={handleRewardPaymentSuccess}
-          onPaymentFailure={handleRewardPaymentFailure}
-        />
-      )}
     </>
   );
 }

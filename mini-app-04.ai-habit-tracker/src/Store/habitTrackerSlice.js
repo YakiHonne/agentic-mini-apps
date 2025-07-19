@@ -45,11 +45,13 @@ const habitTrackerSlice = createSlice({
       state.posts.push(action.payload);
     },
     updateHabitStreak: (state, action) => {
-      const { habitId, success } = action.payload;
+      const { habitId, success, newStreak } = action.payload;
       const habit = state.habits.find((h) => h.id === habitId);
       if (habit) {
         if (success) {
-          habit.currentStreak += 1;
+          // Use provided newStreak value or increment by 1
+          habit.currentStreak =
+            newStreak !== undefined ? newStreak : habit.currentStreak + 1;
           habit.totalCompletions += 1;
           habit.lastCompletedAt = new Date().toISOString();
         } else {

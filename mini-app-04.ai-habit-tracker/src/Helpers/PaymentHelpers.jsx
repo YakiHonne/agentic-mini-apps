@@ -1,5 +1,5 @@
 import { SimplePool, nip04, getPublicKey, Relay } from "nostr-tools";
-import SMHandler from "smart-widget-handler";
+import SWHandler from "smart-widget-handler";
 
 // Utility: hex string to Uint8Array
 function hexToBytes(hex) {
@@ -77,17 +77,17 @@ export const buildZapRequest = async (
     };
 
     // Use SMHandler.client for signing if hostUrl is available
-    if (hostUrl && SMHandler?.client?.requestEventSign) {
+    if (hostUrl && SWHandler?.client?.requestEventSign) {
       try {
-        const signed = await SMHandler.client.requestEventSign(event, hostUrl);
+        const signed = await SWHandler.client.requestEventSign(event, hostUrl);
         return encodeURIComponent(JSON.stringify(signed));
       } catch (error) {
-        console.error("SMHandler signing failed:", error);
+        console.error("SWHandler signing failed:", error);
         // Fall back to window.nostr if available
       }
     }
 
-    // Fallback to window.nostr (NIP-07) if SMHandler fails
+    // Fallback to window.nostr (NIP-07) if SWHandler fails
     if (
       typeof window !== "undefined" &&
       window.nostr &&
@@ -227,17 +227,17 @@ export const sendNwcPayment = async (
       content: encryptedContent,
     };
 
-    // Try to use SMHandler for signing first
+    // Try to use SWHandler for signing first
     let finalizedEvent;
-    if (hostUrl && SMHandler?.client?.requestEventSign) {
+    if (hostUrl && SWHandler?.client?.requestEventSign) {
       try {
-        finalizedEvent = await SMHandler.client.requestEventSign(
+        finalizedEvent = await SWHandler.client.requestEventSign(
           event,
           hostUrl
         );
       } catch (error) {
         console.error(
-          "SMHandler signing failed, falling back to manual signing:",
+          "SWHandler signing failed, falling back to manual signing:",
           error
         );
         // Fall back to manual signing with nostr-tools
@@ -487,4 +487,637 @@ export const getWalletInfo = (userMetadata) => {
   }
 
   return null;
+};
+
+// New function to request payment using SWHandler
+export const requestPayment = async (paymentRequest, hostUrl) => {
+  try {
+    if (!SWHandler?.client?.requestPayment) {
+      throw new Error("SWHandler payment request not available");
+    }
+
+    const result = await SWHandler.client.requestPayment(
+      paymentRequest,
+      hostUrl
+    );
+    return result;
+  } catch (error) {
+    console.error("Payment request failed:", error);
+    throw error;
+  }
+};
+
+// New function to send payment response using SWHandler
+export const sendPaymentResponse = async (
+  paymentResponse,
+  widgetUrl,
+  iframeElement
+) => {
+  try {
+    if (!SWHandler?.host?.sendPaymentResponse) {
+      throw new Error("SWHandler payment response not available");
+    }
+
+    await SWHandler.host.sendPaymentResponse(
+      paymentResponse,
+      widgetUrl,
+      iframeElement
+    );
+    return true;
+  } catch (error) {
+    console.error("Payment response failed:", error);
+    throw error;
+  }
+};
+
+// Updated function to request ZAP payment using SWHandler
+export const requestZapPayment = async (
+  recipientPubkey,
+  amount,
+  content = "",
+  relays = [],
+  hostUrl = null
+) => {
+  try {
+    // Get recipient's lightning address
+    const lnAddress = await getLightningAddress(recipientPubkey);
+    if (!lnAddress) {
+      throw new Error("Recipient has no lightning address");
+    }
+
+    // Build zap request
+    const zapRequest = await buildZapRequest(
+      null, // We'll let SWHandler handle the signing
+      recipientPubkey,
+      lnAddress,
+      amount * 1000, // Convert to msats
+      relays,
+      content,
+      hostUrl
+    );
+
+    if (!zapRequest) {
+      throw new Error("Failed to build zap request");
+    }
+
+    // Create payment request for SWHandler
+    const paymentRequest = {
+      address: lnAddress,
+      amount: amount,
+      nostrPubkey: recipientPubkey,
+      nostrEventIDEncode: zapRequest,
+    };
+
+    // Request payment through SWHandler
+    const result = await requestPayment(paymentRequest, hostUrl);
+    return result;
+  } catch (error) {
+    console.error("ZAP payment request failed:", error);
+    throw error;
+  }
+};
+
+// Updated function to handle habit staking with SWHandler
+export const stakeHabitWithSWHandler = async (
+  userPubkey,
+  amount,
+  habitName,
+  hostUrl = null
+) => {
+  try {
+    // Get user's lightning address
+    const lnAddress = await getLightningAddress(userPubkey);
+    if (!lnAddress) {
+      throw new Error("User has no lightning address for staking");
+    }
+
+    // Create payment request for staking
+    const paymentRequest = {
+      address: lnAddress,
+      amount: amount,
+      nostrPubkey: userPubkey,
+    };
+
+    // Request payment through SWHandler
+    const result = await requestPayment(paymentRequest, hostUrl);
+    return {
+      success: true,
+      purpose: "staking",
+      habitName,
+      amount,
+      paymentMethod: "swhandler",
+      result,
+    };
+  } catch (error) {
+    console.error("Habit staking failed:", error);
+    throw error;
+  }
+};
+
+// Updated function to handle habit rewards with SWHandler
+export const rewardHabitWithSWHandler = async (
+  userPubkey,
+  amount,
+  habitName,
+  streakDays,
+  hostUrl = null
+) => {
+  try {
+    // Get user's lightning address
+    const lnAddress = await getLightningAddress(userPubkey);
+    if (!lnAddress) {
+      throw new Error("User has no lightning address for reward");
+    }
+
+    // Create payment request for reward
+    const paymentRequest = {
+      address: lnAddress,
+      amount: amount,
+      nostrPubkey: userPubkey,
+    };
+
+    // Request payment through SWHandler
+    const result = await requestPayment(paymentRequest, hostUrl);
+    return {
+      success: true,
+      purpose: "reward",
+      habitName,
+      streakDays,
+      rewardAmount: amount,
+      paymentMethod: "swhandler",
+      result,
+    };
+  } catch (error) {
+    console.error("Habit reward failed:", error);
+    throw error;
+  }
+};
+
+// Function to handle payment response from SWHandler
+export const handlePaymentResponse = async (
+  paymentResponse,
+  widgetUrl,
+  iframeElement
+) => {
+  try {
+    // Send payment response back to the widget
+    await sendPaymentResponse(paymentResponse, widgetUrl, iframeElement);
+
+    // Log the response for debugging
+    console.log("Payment response sent:", paymentResponse);
+
+    return true;
+  } catch (error) {
+    console.error("Failed to send payment response:", error);
+    throw error;
+  }
+};
+
+// Example function to handle successful payment
+export const handleSuccessfulPayment = async (
+  preImage,
+  widgetUrl,
+  iframeElement
+) => {
+  const paymentResponse = {
+    status: true,
+    preImage: preImage,
+  };
+
+  return await handlePaymentResponse(paymentResponse, widgetUrl, iframeElement);
+};
+
+// Example function to handle failed payment
+export const handleFailedPayment = async (error, widgetUrl, iframeElement) => {
+  const paymentResponse = {
+    status: false,
+    error: error.message || "Payment failed",
+  };
+
+  return await handlePaymentResponse(paymentResponse, widgetUrl, iframeElement);
+};
+
+// Function to create a lightning invoice payment request
+export const createLightningPaymentRequest = (
+  address,
+  amount,
+  nostrPubkey = null,
+  nostrEventIDEncode = null
+) => {
+  return {
+    address: address, // Lightning address, LNURL, or BOLT11 invoice
+    amount: amount, // sats (ignored if address is a BOLT11 invoice)
+    nostrPubkey: nostrPubkey, // optional
+    nostrEventIDEncode: nostrEventIDEncode, // optional
+  };
+};
+
+// Function to create a ZAP payment request
+export const createZapPaymentRequest = async (
+  recipientPubkey,
+  amount,
+  content = "",
+  relays = []
+) => {
+  try {
+    // Get recipient's lightning address
+    const lnAddress = await getLightningAddress(recipientPubkey);
+    if (!lnAddress) {
+      throw new Error("Recipient has no lightning address");
+    }
+
+    // Build zap request
+    const zapRequest = await buildZapRequest(
+      null, // We'll let SWHandler handle the signing
+      recipientPubkey,
+      lnAddress,
+      amount * 1000, // Convert to msats
+      relays,
+      content
+    );
+
+    if (!zapRequest) {
+      throw new Error("Failed to build zap request");
+    }
+
+    return {
+      address: lnAddress,
+      amount: amount,
+      nostrPubkey: recipientPubkey,
+      nostrEventIDEncode: zapRequest,
+    };
+  } catch (error) {
+    console.error("Failed to create ZAP payment request:", error);
+    throw error;
+  }
+};
+
+// New function to get user wallet address from SWHandler (if available)
+export const getUserWalletAddress = async (userData, hostUrl = null) => {
+  try {
+    // First try to get from user metadata (existing method)
+    const lnAddress = userData?.lud16 || userData?.lud06;
+    if (lnAddress) {
+      return lnAddress;
+    }
+
+    // Try to get from Nostr profile (existing method)
+    if (userData?.pubkey) {
+      const profileLnAddress = await getLightningAddress(userData.pubkey);
+      if (profileLnAddress) {
+        return profileLnAddress;
+      }
+    }
+
+    // TODO: If SWHandler adds getUserWallet method in future
+    // if (hostUrl && SWHandler?.client?.getUserWallet) {
+    //   try {
+    //     const walletInfo = await SWHandler.client.getUserWallet(hostUrl);
+    //     return walletInfo?.lightningAddress || walletInfo?.address;
+    //   } catch (error) {
+    //     console.log("SWHandler getUserWallet not available:", error);
+    //   }
+    // }
+
+    return null;
+  } catch (error) {
+    console.error("Failed to get user wallet address:", error);
+    return null;
+  }
+};
+
+// New function for centralized reward system (no wallet signing required)
+export const sendCentralizedReward = async (
+  userPubkey,
+  stakedAmount,
+  habitName,
+  totalHabitDays, // Changed from streakDays to totalHabitDays
+  hostUrl = null
+) => {
+  try {
+    // Get user's lightning address
+    const userLnAddress = await getUserWalletAddress(
+      { pubkey: userPubkey },
+      hostUrl
+    );
+    if (!userLnAddress) {
+      throw new Error("User has no lightning address for reward");
+    }
+
+    // Calculate reward amount based on total habit days
+    let rewardAmount;
+    let rewardPercentage;
+
+    if (totalHabitDays === 1) {
+      // Day 1: Only 50% of staked amount
+      rewardPercentage = 0.5;
+      rewardAmount = Math.floor(stakedAmount * rewardPercentage);
+    } else if (totalHabitDays >= 7) {
+      // 7+ days: 100% of staked amount
+      rewardPercentage = 1.0;
+      rewardAmount = stakedAmount;
+    } else {
+      // 2-6 days: Gradual increase from 60% to 90%
+      rewardPercentage = 0.6 + (totalHabitDays - 2) * 0.075; // 60% + 7.5% per day
+      rewardAmount = Math.floor(stakedAmount * rewardPercentage);
+    }
+
+    // Create reward payment request for centralized wallet
+    const paymentRequest = {
+      address: userLnAddress,
+      amount: rewardAmount,
+      nostrPubkey: userPubkey,
+    };
+
+    // For centralized rewards, we don't need user wallet signing
+    // The custodian wallet handles the payment
+    const result = await requestPayment(paymentRequest, hostUrl);
+
+    return {
+      success: true,
+      purpose: "centralized_reward",
+      habitName,
+      totalHabitDays, // Changed from streakDays
+      stakedAmount,
+      rewardAmount,
+      rewardPercentage: Math.round(rewardPercentage * 100),
+      userLightningAddress: userLnAddress,
+      paymentMethod: "centralized_custodian",
+      result,
+    };
+  } catch (error) {
+    console.error("Centralized reward failed:", error);
+    throw error;
+  }
+};
+
+// New function for centralized staking (no wallet signing required)
+export const processCentralizedStaking = async (
+  userPubkey,
+  amount,
+  habitName,
+  hostUrl = null
+) => {
+  try {
+    // Get user's lightning address
+    const userLnAddress = await getUserWalletAddress(
+      { pubkey: userPubkey },
+      hostUrl
+    );
+    if (!userLnAddress) {
+      throw new Error("User has no lightning address for staking");
+    }
+
+    // For centralized staking, we create a record but don't require user payment
+    // The custodian wallet handles the staking
+    const stakingRecord = {
+      stakingId: `stake_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`,
+      userPubkey,
+      userLightningAddress: userLnAddress,
+      amount,
+      habitName,
+      timestamp: new Date().toISOString(),
+      status: "active",
+    };
+
+    return {
+      success: true,
+      purpose: "centralized_staking",
+      habitName,
+      amount,
+      stakingRecord,
+      paymentMethod: "centralized_custodian",
+    };
+  } catch (error) {
+    console.error("Centralized staking failed:", error);
+    throw error;
+  }
+};
+
+// Function to calculate daily reward amount based on habit formation system
+export const calculateDailyRewardAmount = (
+  stakedAmount,
+  currentDay,
+  currentStreak
+) => {
+  const HABIT_FORMATION_DAYS = 30; // 30-31 days for habit formation
+
+  // Base daily reward calculation
+  let baseReward;
+  if (stakedAmount === 0) {
+    baseReward = 30; // Default reward for non-staked habits
+  } else {
+    baseReward = Math.floor(stakedAmount / HABIT_FORMATION_DAYS); // Daily portion of staked amount
+  }
+
+  // Streak bonus calculation (extra reward for maintaining consecutive days)
+  let streakBonus = 0;
+  if (currentStreak >= 7) {
+    streakBonus = Math.floor(baseReward * 0.5); // 50% bonus for 7+ day streak
+  } else if (currentStreak >= 3) {
+    streakBonus = Math.floor(baseReward * 0.25); // 25% bonus for 3+ day streak
+  }
+
+  const totalReward = baseReward + streakBonus;
+
+  return {
+    baseReward,
+    streakBonus,
+    totalReward,
+    streakLevel:
+      currentStreak >= 7 ? "high" : currentStreak >= 3 ? "medium" : "none",
+  };
+};
+
+// Function to calculate reward amount based on total habit days (legacy for existing rewards)
+export const calculateRewardAmount = (stakedAmount, totalHabitDays) => {
+  // Use the new daily reward system
+  const rewardInfo = calculateDailyRewardAmount(
+    stakedAmount,
+    totalHabitDays,
+    totalHabitDays
+  );
+  return rewardInfo.totalReward;
+};
+
+// Function to check if habit is completed (30-31 days)
+export const isHabitCompleted = (totalCompletions) => {
+  return totalCompletions >= 30;
+};
+
+// Function to get habit completion status
+export const getHabitCompletionStatus = (totalCompletions) => {
+  const HABIT_FORMATION_DAYS = 30;
+
+  if (totalCompletions >= HABIT_FORMATION_DAYS) {
+    return {
+      status: "completed",
+      message:
+        "🎉 Habit formed! You've successfully completed your 30-day journey!",
+      progress: 100,
+      daysRemaining: 0,
+    };
+  }
+
+  return {
+    status: "active",
+    message: `${
+      HABIT_FORMATION_DAYS - totalCompletions
+    } days left to form this habit`,
+    progress: Math.round((totalCompletions / HABIT_FORMATION_DAYS) * 100),
+    daysRemaining: HABIT_FORMATION_DAYS - totalCompletions,
+  };
+};
+
+// Function to check if user can check-in today
+export const canCheckInToday = (lastCompletedAt) => {
+  if (!lastCompletedAt) return true;
+
+  const today = new Date().toDateString();
+  const lastCompleted = new Date(lastCompletedAt).toDateString();
+
+  return today !== lastCompleted; // Can only check-in once per day
+};
+
+// Function to calculate streak status (consecutive days)
+export const calculateStreakStatus = (lastCompletedAt, currentStreak) => {
+  if (!lastCompletedAt) {
+    return { isConsecutive: true, streakBroken: false };
+  }
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const lastCompleted = new Date(lastCompletedAt);
+  const lastCompletedDate = lastCompleted.toDateString();
+  const yesterdayDate = yesterday.toDateString();
+
+  // Check if last completion was yesterday (maintaining streak)
+  const isConsecutive = lastCompletedDate === yesterdayDate;
+  const streakBroken = !isConsecutive && currentStreak > 0;
+
+  return { isConsecutive, streakBroken };
+};
+
+// Function to get reward percentage for display
+export const getRewardPercentage = (totalHabitDays) => {
+  if (totalHabitDays === 1) return 50;
+  if (totalHabitDays >= 7) return 100;
+  return Math.round((0.6 + (totalHabitDays - 2) * 0.075) * 100);
+};
+
+// New function for habit creation with SWHandler payment request
+export const createHabitWithPayment = async (
+  userPubkey,
+  amount,
+  habitName,
+  hostUrl,
+  onPaymentSuccess,
+  onPaymentTimeout
+) => {
+  try {
+    // Use the provided staking service address
+    const stakingServiceAddress = "wispykindness363309@getalby.com";
+
+    // Create payment request for SWHandler
+    const paymentRequest = {
+      address: stakingServiceAddress,
+      amount: amount,
+      nostrPubkey: userPubkey,
+    };
+
+    console.log("Creating payment request:", paymentRequest);
+
+    // Request payment via SWHandler
+    SWHandler.client.requestPayment(paymentRequest, hostUrl);
+    console.log("Payment request sent via SWHandler");
+
+    // Set up payment response listener
+    const paymentResponseHandler = (event) => {
+      console.log("Payment event received:", event.data);
+
+      // Handle the actual response format from SWHandler
+      if (event.data && event.data.kind === "payment-response") {
+        const paymentData = event.data.data;
+        console.log("Payment response:", paymentData);
+
+        if (paymentData.status === true) {
+          // Payment successful
+          console.log("Payment successful, calling onPaymentSuccess");
+          onPaymentSuccess({
+            success: true,
+            purpose: "habit_creation",
+            habitName,
+            amount,
+            preImage: paymentData.preImage,
+            paymentMethod: "swhandler",
+          });
+
+          window.removeEventListener("message", paymentResponseHandler);
+        } else {
+          // Payment failed but don't show error immediately
+          // Let the 10-second timer complete first
+          console.log(
+            "Payment failed with status:",
+            paymentData.status,
+            "but waiting for timeout to show options"
+          );
+        }
+      } else {
+        console.log("Event received but not payment-response:", event.data);
+      }
+    };
+
+    // Listen for payment response
+    window.addEventListener("message", paymentResponseHandler);
+
+    // Set timeout for payment (10 seconds)
+    setTimeout(() => {
+      window.removeEventListener("message", paymentResponseHandler);
+
+      if (onPaymentTimeout) {
+        onPaymentTimeout({
+          success: false,
+          purpose: "habit_creation",
+          habitName,
+          amount,
+          error: "Payment timeout",
+          paymentMethod: "swhandler",
+        });
+      }
+    }, 10000);
+
+    return {
+      success: true,
+      purpose: "payment_request_sent",
+      habitName,
+      amount,
+      paymentMethod: "swhandler",
+    };
+  } catch (error) {
+    console.error("Habit creation with payment failed:", error);
+    throw error;
+  }
+};
+
+// Function to send payment response back to SWHandler
+export const sendSWHandlerPaymentResponse = (
+  paymentResponse,
+  targetOrigin,
+  iframeElement
+) => {
+  try {
+    SWHandler.host.sendPaymentResponse(
+      paymentResponse,
+      targetOrigin,
+      iframeElement
+    );
+    return true;
+  } catch (error) {
+    console.error("Failed to send payment response:", error);
+    throw error;
+  }
 };

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { X, Target, Zap, Type, Shield, Lightbulb } from "lucide-react";
-import PaymentModal from "./PaymentModal";
+import { addToast } from "../Store/toastSlice";
+import { createHabitWithPayment } from "../Helpers/PaymentHelpers";
 
 const HABIT_EMOJIS = [
   "🎯",
@@ -108,6 +110,7 @@ export default function CreateHabitModal({
   userData,
   hostUrl,
 }) {
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -116,12 +119,13 @@ export default function CreateHabitModal({
     category: "health",
   });
 
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isCreatingHabit, setIsCreatingHabit] = useState(false);
   const [selectedAmountOption, setSelectedAmountOption] = useState(null);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [descriptionSuggestions, setDescriptionSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [paymentInProgress, setPaymentInProgress] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   // Generate description suggestions based on habit name
   useEffect(() => {
@@ -150,13 +154,97 @@ export default function CreateHabitModal({
     return [...new Set(suggestions)].slice(0, 3);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    // If staking amount is set, show payment modal first
+    // If staking amount is set, handle payment with toasts
     if (formData.stakingAmount > 0) {
-      setShowPaymentModal(true);
+      setPaymentInProgress(true);
+      setCountdown(10);
+
+      // Show initial toast
+      dispatch(
+        addToast({
+          type: "info",
+          message: `💳 Payment request sent for ${formData.stakingAmount} sats. Complete in your wallet (10s)...`,
+        })
+      );
+
+      // Start countdown
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      try {
+        await createHabitWithPayment(
+          userData.pubkey,
+          formData.stakingAmount,
+          formData.name,
+          hostUrl,
+          // Payment success callback
+          (paymentResult) => {
+            clearInterval(countdownInterval);
+            setPaymentInProgress(false);
+
+            if (paymentResult.success) {
+              dispatch(
+                addToast({
+                  type: "success",
+                  message: `✅ Payment successful! Creating habit "${formData.name}"...`,
+                })
+              );
+
+              // Create habit with payment result
+              createHabit(paymentResult);
+            }
+          },
+          // Payment timeout callback
+          (timeoutResult) => {
+            clearInterval(countdownInterval);
+            setPaymentInProgress(false);
+
+            // Automatically create habit without stake on timeout
+            dispatch(
+              addToast({
+                type: "success",
+                message: `✅ Habit "${formData.name}" created without stake. You can stake later!`,
+              })
+            );
+
+            // Create habit without payment
+            const habitDataWithoutStake = {
+              ...formData,
+              stakingAmount: 0,
+              stakingResult: {
+                success: true,
+                paymentMethod: "no_stake",
+                message: "Habit created without stake due to payment timeout",
+              },
+              createdAt: new Date().toISOString(),
+            };
+
+            onSubmit(habitDataWithoutStake);
+            onClose(); // Return to main screen
+          }
+        );
+      } catch (error) {
+        clearInterval(countdownInterval);
+        setPaymentInProgress(false);
+
+        dispatch(
+          addToast({
+            type: "error",
+            message: `❌ Payment failed: ${error.message}`,
+          })
+        );
+      }
     } else {
       // No staking, create habit directly
       createHabit();
@@ -174,18 +262,7 @@ export default function CreateHabitModal({
 
     onSubmit(habitData);
     setIsCreatingHabit(false);
-  };
-
-  const handlePaymentSuccess = (paymentResult) => {
-    console.log("Staking payment successful:", paymentResult);
-    setShowPaymentModal(false);
-    createHabit(paymentResult);
-  };
-
-  const handlePaymentFailure = (error) => {
-    console.error("Staking payment failed:", error);
-    setShowPaymentModal(false);
-    // Optionally create habit without staking or show error
+    onClose(); // Close modal after creating habit
   };
 
   const handleInputChange = (field, value) => {
@@ -377,9 +454,16 @@ export default function CreateHabitModal({
               <button
                 type="submit"
                 className="submit-btn"
-                disabled={isCreatingHabit}
+                disabled={isCreatingHabit || paymentInProgress}
               >
-                {formData.stakingAmount > 0 ? (
+                {paymentInProgress ? (
+                  <>
+                    <Shield size={16} />
+                    {countdown > 0
+                      ? `Payment... (${countdown}s)`
+                      : "Payment timeout"}
+                  </>
+                ) : formData.stakingAmount > 0 ? (
                   <>
                     <Shield size={16} />
                     {isCreatingHabit ? "Creating..." : "Stake & Create"}
@@ -395,18 +479,40 @@ export default function CreateHabitModal({
         </div>
       </div>
 
-      {/* Payment Modal for Staking */}
-      <PaymentModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        paymentType="staking"
-        amount={formData.stakingAmount}
-        habitName={formData.name}
-        userData={userData}
-        hostUrl={hostUrl}
-        onPaymentSuccess={handlePaymentSuccess}
-        onPaymentFailure={handlePaymentFailure}
-      />
+      {/* Payment status display */}
+      {paymentInProgress && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            background: "white",
+            padding: "16px",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            border: "2px solid #3b82f6",
+            zIndex: 1000,
+            minWidth: "300px",
+          }}
+        >
+          {countdown > 0 ? (
+            <div>
+              <p style={{ margin: "0 0 8px 0", fontWeight: "600" }}>
+                💳 Complete payment in your wallet
+              </p>
+              <p style={{ margin: "0", color: "#666", fontSize: "14px" }}>
+                Time remaining: {countdown}s
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p style={{ margin: "0", fontWeight: "600", color: "#10b981" }}>
+                ✅ Creating habit without stake...
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }

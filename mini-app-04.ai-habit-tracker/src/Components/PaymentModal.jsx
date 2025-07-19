@@ -21,6 +21,14 @@ import {
   sendNwcPayment,
   fetchLnurlInvoice,
   getLightningAddress,
+  stakeHabitWithSWHandler,
+  rewardHabitWithSWHandler,
+  requestZapPayment,
+  sendCentralizedReward,
+  processCentralizedStaking,
+  calculateRewardAmount,
+  getRewardPercentage,
+  getUserWalletAddress,
 } from "../Helpers/PaymentHelpers";
 
 export default function PaymentModal({
@@ -30,7 +38,9 @@ export default function PaymentModal({
   amount,
   habitName,
   userData,
-  streakDays = 0,
+  totalHabitDays = 0, // Changed from streakDays to totalHabitDays
+  streakDays = 0, // Add streakDays parameter for actual streak value
+  stakedAmount = 0, // Original staked amount for percentage calculation
   onPaymentSuccess,
   onPaymentFailure,
   hostUrl = null,
@@ -81,113 +91,140 @@ export default function PaymentModal({
       if (paymentType === "staking") {
         setPaymentProgress(30);
 
-        if (walletInfo?.type === "nwc") {
-          // Automated staking with NWC
-          result = await payHabitStaking(userData, amount, habitName, hostUrl);
-          setPaymentProgress(80);
-        } else {
-          // Lightning address only - generate invoice and show to user
-          const lnAddress = userData.lud16 || userData.lud06;
-          if (!lnAddress) {
-            throw new Error("No lightning address found for staking");
+        // Try centralized staking first (no wallet signing required)
+        if (hostUrl) {
+          try {
+            result = await processCentralizedStaking(
+              userData.pubkey,
+              amount,
+              habitName,
+              hostUrl
+            );
+            setPaymentProgress(80);
+          } catch (centralizedError) {
+            console.log(
+              "Centralized staking failed, falling back to SWHandler:",
+              centralizedError
+            );
+            // Fall back to SWHandler
+            try {
+              result = await stakeHabitWithSWHandler(
+                userData.pubkey,
+                amount,
+                habitName,
+                hostUrl
+              );
+              setPaymentProgress(80);
+            } catch (swError) {
+              console.log(
+                "SWHandler staking failed, falling back to legacy methods:",
+                swError
+              );
+              // Fall back to legacy methods
+            }
           }
+        }
 
-          const description = `Staking ${amount} sats for ${habitName}`;
-          const invoiceData = await fetchLnurlInvoice(
-            lnAddress,
-            amount,
-            description,
-            userData.pubkey,
-            hostUrl
-          );
+        // Fall back to legacy methods if centralized and SWHandler failed
+        if (!result) {
+          if (walletInfo?.type === "nwc") {
+            // Automated staking with NWC
+            result = await payHabitStaking(
+              userData,
+              amount,
+              habitName,
+              hostUrl
+            );
+            setPaymentProgress(80);
+          } else {
+            // Lightning address only - generate invoice and show to user
+            const lnAddress = userData.lud16 || userData.lud06;
+            if (!lnAddress) {
+              throw new Error("No lightning address found for staking");
+            }
 
-          if (!invoiceData?.invoice) {
-            throw new Error("Failed to generate staking invoice");
+            const description = `Staking ${amount} sats for ${habitName}`;
+            const invoiceData = await fetchLnurlInvoice(
+              lnAddress,
+              amount,
+              description,
+              userData.pubkey,
+              hostUrl
+            );
+
+            if (!invoiceData?.invoice) {
+              throw new Error("Failed to generate staking invoice");
+            }
+
+            setInvoice(invoiceData.invoice);
+            result = {
+              success: true,
+              purpose: "staking",
+              habitName,
+              amount,
+              invoice: invoiceData.invoice,
+              description,
+              paymentMethod: "lightning_address",
+            };
+            setPaymentProgress(80);
           }
-
-          setInvoice(invoiceData.invoice);
-          result = {
-            success: true,
-            purpose: "staking",
-            habitName,
-            amount,
-            invoice: invoiceData.invoice,
-            description,
-            paymentMethod: "lightning_address",
-          };
-          setPaymentProgress(80);
         }
       } else if (paymentType === "reward") {
         setPaymentProgress(20);
 
-        // Get user's lightning address for reward payment
-        const lnAddress = userData.lud16 || userData.lud06;
-        if (!lnAddress) {
-          throw new Error("No lightning address found for reward payment");
+        // Use the already calculated reward amount passed from parent
+        // instead of recalculating to avoid inconsistencies
+        const rewardAmount = amount; // This is already the calculated reward amount
+        const rewardPercentage = getRewardPercentage(totalHabitDays);
+
+        // Show encouraging message instead of processing payment
+        setPaymentProgress(100);
+
+        const result = {
+          success: true,
+          purpose: "reward_pending",
+          habitName,
+          totalHabitDays,
+          stakedAmount: stakedAmount, // Use the stakedAmount passed from parent
+          rewardAmount: rewardAmount,
+          rewardPercentage: rewardPercentage,
+          paymentMethod: "pending_server_implementation",
+          message: "Reward calculated and queued for future distribution",
+        };
+
+        setPaymentDetails(result);
+        setPaymentStep("success");
+
+        // Don't show toast here - let the parent component handle success messages
+        // to avoid duplicate notifications
+
+        // Call success callback
+        if (onPaymentSuccess) {
+          onPaymentSuccess(result);
         }
-
-        setPaymentProgress(40);
-
-        // Generate invoice for reward
-        const description = `Habit reward: ${amount} sats for ${habitName} (${streakDays} day streak)`;
-        const invoiceData = await fetchLnurlInvoice(
-          lnAddress,
-          amount,
-          description,
-          userData.pubkey,
-          hostUrl
-        );
-
-        if (!invoiceData?.invoice) {
-          throw new Error("Failed to generate reward invoice");
-        }
-
-        setInvoice(invoiceData.invoice);
-        setPaymentProgress(60);
-
-        // For rewards, we can proceed differently based on wallet type
-        if (walletInfo?.type === "nwc") {
-          // Automated payment with NWC
-          result = await sendNwcPayment(
-            userData,
-            invoiceData.invoice,
-            amount,
-            description,
-            hostUrl
-          );
-        } else {
-          // Lightning address only - simulate successful reward generation
-          result = {
-            success: true,
-            purpose: "reward",
-            habitName,
-            streakDays,
-            rewardAmount: amount,
-            invoice: invoiceData.invoice,
-            description,
-            paymentMethod: "lightning_address",
-          };
-        }
-
-        setPaymentProgress(80);
       }
 
       setPaymentProgress(100);
       setPaymentDetails(result);
       setPaymentStep("success");
 
-      // Show success message
-      dispatch(
-        addToast({
-          type: "success",
-          message:
-            paymentType === "staking"
-              ? result && result.paymentMethod === "lightning_address"
+      // Show success message with reward details
+      if (paymentType === "staking") {
+        dispatch(
+          addToast({
+            type: "success",
+            message:
+              result && result.paymentMethod === "centralized_custodian"
+                ? `🛡️ Staking ${amount} sats for ${habitName} initiated!`
+                : result && result.paymentMethod === "swhandler"
+                ? `🛡️ SWHandler payment requested for ${amount} sats to stake for ${habitName}!`
+                : result && result.paymentMethod === "lightning_address"
                 ? `🛡️ Invoice generated! Pay ${amount} sats to stake for ${habitName}.`
-                : `🛡️ Successfully staked ${amount} sats for ${habitName}!`
-              : `🎉 Reward of ${amount} sats generated for your ${streakDays} day streak!`,
-        })
-      );
+                : `🛡️ Successfully staked ${amount} sats for ${habitName}!`,
+          })
+        );
+      }
+      // Note: Reward toast is now shown directly in the reward processing above
 
       // Call success callback
       if (
@@ -197,7 +234,7 @@ export default function PaymentModal({
           result.paymentMethod === "lightning_address"
         )
       ) {
-        // Only auto-close for automated NWC payments; for manual invoice let user close
+        // Only auto-close for automated payments; for manual invoice let user close
         onPaymentSuccess(result);
       }
     } catch (error) {
@@ -243,9 +280,9 @@ export default function PaymentModal({
           <div className="payment-header">
             <div className="payment-icon">
               {paymentType === "staking" ? (
-                <Shield size={24} className="staking-icon" />
+                <Shield size={32} className="staking-icon" />
               ) : (
-                <Gift size={24} className="reward-icon" />
+                <Gift size={32} className="reward-icon" />
               )}
             </div>
             <div>
@@ -255,7 +292,10 @@ export default function PaymentModal({
               <p className="payment-subtitle">
                 {paymentType === "staking"
                   ? `Stake ${amount} sats for ${habitName}`
-                  : `${amount} sats reward for ${streakDays} day streak`}
+                  : `${calculateRewardAmount(
+                      amount,
+                      totalHabitDays
+                    )} sats reward for ${totalHabitDays} total days`}
               </p>
             </div>
           </div>
@@ -334,7 +374,7 @@ export default function PaymentModal({
                 <span className="detail-label">Streak:</span>
                 <span className="detail-value">
                   <TrendingUp size={16} />
-                  {streakDays} days
+                  {streakDays || totalHabitDays} days
                 </span>
               </div>
             )}
@@ -368,9 +408,24 @@ export default function PaymentModal({
                   ? paymentDetails.paymentMethod === "lightning_address"
                     ? `Your staking invoice has been generated! Pay ${amount} sats to stake for ${habitName}.`
                     : `Your ${amount} sats have been staked for ${habitName}. Complete your daily habits to earn rewards!`
+                  : paymentDetails.paymentMethod ===
+                    "pending_server_implementation"
+                  ? paymentDetails.stakedAmount === 0
+                    ? `🎉 Great progress today! Your reward of ${
+                        paymentDetails.rewardAmount || amount
+                      } sats will reach your wallet soon. Stay tuned!`
+                    : `🎉 Great progress today! Your reward of ${
+                        paymentDetails.rewardAmount || amount
+                      } sats (${paymentDetails.rewardPercentage || 0}% of ${
+                        paymentDetails.stakedAmount || amount
+                      } staked) will reach your wallet soon. Stay tuned!`
                   : paymentDetails.paymentMethod === "lightning_address"
-                  ? `Your reward invoice has been generated! ${amount} sats for your ${streakDays} day streak on ${habitName}. Copy the invoice below to claim your reward.`
-                  : `Congratulations! You've earned ${amount} sats for your ${streakDays} day streak on ${habitName}.`}
+                  ? `Your reward invoice has been generated! ${
+                      paymentDetails.rewardAmount || amount
+                    } sats for your ${totalHabitDays} total days on ${habitName}. Copy the invoice below to claim your reward.`
+                  : `Congratulations! You've earned ${
+                      paymentDetails.rewardAmount || amount
+                    } sats for your ${totalHabitDays} total days on ${habitName}.`}
               </p>
               {paymentDetails.invoice &&
                 paymentDetails.paymentMethod === "lightning_address" && (

@@ -179,45 +179,51 @@
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
-  background: var(--bg-primary);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-md); /* smaller padding */
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  border: 1px solid var(--border-color);
-  transition: all var(--transition-fast);
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .stat-icon {
-  padding: var(--spacing-sm);
-  border-radius: var(--border-radius);
-  background: var(--primary-light);
-  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fed7aa, #fdba74);
+  color: #ea580c;
 }
 
 .stat-info h3 {
-  font-size: var(--font-size-xl); /* slightly smaller */
+  margin: 0 0 4px 0;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
+  color: #1e293b;
 }
 
 .stat-info p {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
   margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 /* Habits Section */
@@ -3096,4 +3102,197 @@
   .how-steps {
     flex-direction: column;
   }
+}
+
+/* Habit Card Updates */
+.habit-card.completed-habit {
+  border: 2px solid #10b981;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+}
+
+.completion-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.completed-today {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.completed-text {
+  font-size: 0.75rem;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.habit-completed .trophy-icon {
+  color: #fbbf24;
+}
+
+.progress-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.days-remaining {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* Reward Info Card Updates */
+.reward-info-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.reward-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.reward-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reward-title h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.reward-icon {
+  font-size: 1.5rem;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+}
+
+.status-badge.active {
+  background-color: #3b82f6;
+}
+
+.status-badge.completed {
+  background-color: #10b981;
+}
+
+.reward-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.reward-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.reward-row.total-row {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-color: #f59e0b;
+  font-weight: 600;
+}
+
+.reward-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.reward-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.base-reward {
+  color: #1e293b;
+  font-size: 1rem;
+}
+
+.streak-bonus {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.total-reward {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.progress-text {
+  font-size: 1rem;
+  color: #64748b;
+}
+
+.reward-explanation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.explanation-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.explanation-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.explanation-content strong {
+  font-weight: 600;
+  color: #1e293b;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.explanation-content p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }

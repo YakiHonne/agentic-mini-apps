@@ -6,6 +6,10 @@ import CreateHabitModal from "./CreateHabitModal";
 import PostUpdateModal from "./PostUpdateModal";
 import { addHabit, setCurrentHabit } from "../Store/habitTrackerSlice";
 import { addToast } from "../Store/toastSlice";
+import {
+  getHabitCompletionStatus,
+  canCheckInToday,
+} from "../Helpers/PaymentHelpers";
 
 export default function HabitTracker({ userData, hostUrl }) {
   const dispatch = useDispatch();
@@ -46,17 +50,25 @@ export default function HabitTracker({ userData, hostUrl }) {
     }
   };
 
+  // Calculate stats with new system
   const totalStaked = habits.reduce(
     (sum, habit) => sum + (habit.stakingAmount || 0),
     0
   );
-  const activeHabits = habits.filter((habit) => habit.status === "active");
-  const completedToday = habits.filter((habit) => {
-    if (!habit.lastCompletedAt) return false;
-    const today = new Date().toDateString();
-    const lastCompleted = new Date(habit.lastCompletedAt).toDateString();
-    return today === lastCompleted;
+
+  const activeHabits = habits.filter((habit) => {
+    const completionStatus = getHabitCompletionStatus(habit.totalCompletions);
+    return completionStatus.status === "active";
   });
+
+  const completedToday = habits.filter((habit) => {
+    return !canCheckInToday(habit.lastCompletedAt); // Already completed today
+  });
+
+  const totalStreak = habits.reduce(
+    (sum, habit) => sum + habit.currentStreak,
+    0
+  );
 
   return (
     <div className="habit-tracker">
@@ -68,16 +80,6 @@ export default function HabitTracker({ userData, hostUrl }) {
           <div className="stat-info">
             <h3>{activeHabits.length}</h3>
             <p>Active Habits</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">
-            <Zap size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>{totalStaked}</h3>
-            <p>Sats Staked</p>
           </div>
         </div>
 
@@ -96,8 +98,18 @@ export default function HabitTracker({ userData, hostUrl }) {
             <TrendingUp size={24} />
           </div>
           <div className="stat-info">
-            <h3>{habits.reduce((sum, h) => sum + h.currentStreak, 0)}</h3>
+            <h3>{totalStreak}</h3>
             <p>Total Streak</p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">
+            <Zap size={24} />
+          </div>
+          <div className="stat-info">
+            <h3>{totalStaked}</h3>
+            <p>Sats Staked</p>
           </div>
         </div>
       </div>
