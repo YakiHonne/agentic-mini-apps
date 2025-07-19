@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Provider } from "react-redux";
-import SMHandler from "smart-widget-handler";
+import SWHandler from "smart-widget-handler";
 import { store } from "./Store/store.js";
 import Main from "./Pages/Main";
 import ToastMessages from "./Components/ToastMessages";
@@ -14,12 +14,12 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    SMHandler.client.ready();
+    SWHandler.client.ready();
   }, []);
 
   useEffect(() => {
     // Listen for data from the host app
-    const listener = SMHandler.client.listen((event) => {
+    const listener = SWHandler.client.listen((event) => {
       console.log("Event data received:", event.data);
 
       if (event.kind === "user-metadata") {
