@@ -27,20 +27,39 @@ export default defineConfig(({ mode }) => ({
   },
   preview: {
     headers: {
-      // Preview typically uses one origin - choose first or implement similar logic
       "Access-Control-Allow-Origin": allowedOrigins[0],
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Allow-Credentials": "true"
     }
   },
+  build: {
+    target: 'esnext', // Avoids eval-like behavior
+    minify: 'terser', // Safer minification than default esbuild
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.* in production
+        pure_funcs: ['eval'], // Strip eval calls
+      },
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: undefined, // Disable eval-based chunk splitting
+      },
+    },
+  },
   plugins: [
-    react(),
+    react({
+      jsxRuntime: 'classic' // Consider using classic runtime if issues persist
+    }),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(mode) // Ensure proper env detection
   },
 }));
