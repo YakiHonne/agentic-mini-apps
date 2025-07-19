@@ -6,7 +6,7 @@ import { componentTagger } from "lovable-tagger";
 // Correct whitelisted domains (without paths)
 const allowedOrigins = [
   "https://yakihonne.com",
-  "https://otherdomain.com" // Add more domains as needed
+  "https://www.yakihonne.com" // Add more domains as needed
 ];
 
 export default defineConfig(({ mode }) => ({
