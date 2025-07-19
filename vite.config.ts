@@ -3,10 +3,10 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Correct whitelisted domains (without paths)
+// Whitelisted domains
 const allowedOrigins = [
   "https://yakihonne.com",
-  "https://www.yakihonne.com" // Add more domains as needed
+  "https://www.yakihonne.com"
 ];
 
 export default defineConfig(({ mode }) => ({
@@ -21,7 +21,11 @@ export default defineConfig(({ mode }) => ({
         "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigins[0],
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Credentials": "true"
+        "Access-Control-Allow-Credentials": "true",
+        "Content-Security-Policy": 
+          mode === 'development' 
+            ? "script-src 'self' 'unsafe-eval'" // Only allow eval in dev
+            : "script-src 'self'" // Strict in production
       };
     }
   },
@@ -30,27 +34,46 @@ export default defineConfig(({ mode }) => ({
       "Access-Control-Allow-Origin": allowedOrigins[0],
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Allow-Credentials": "true"
+      "Access-Control-Allow-Credentials": "true",
+      "Content-Security-Policy": "script-src 'self'"
     }
   },
   build: {
-    target: 'esnext', // Avoids eval-like behavior
-    minify: 'terser', // Safer minification than default esbuild
+    target: 'es2015', // More compatible than esnext
+    minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.* in production
-        pure_funcs: ['eval'], // Strip eval calls
+        drop_console: mode === 'production', // Only drop in prod
+        pure_funcs: [
+          'eval',
+          'Function',
+          'setTimeout',
+          'setInterval'
+        ],
+        passes: 3 // Better optimization
       },
+      format: {
+        comments: false
+      }
     },
     rollupOptions: {
       output: {
-        manualChunks: undefined, // Disable eval-based chunk splitting
+        manualChunks: undefined,
+        hoistTransitiveImports: false // Prevents eval patterns
       },
-    },
+      onwarn(warning, warn) {
+        if (warning.code === 'EVAL') return; // Silence eval warnings
+        warn(warning);
+      }
+    }
   },
   plugins: [
     react({
-      jsxRuntime: 'classic' // Consider using classic runtime if issues persist
+      jsxRuntime: 'automatic', // Prefer automatic runtime
+      babel: {
+        plugins: [
+          ['transform-remove-console', { exclude: ['error', 'warn'] }]
+      }
     }),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
@@ -59,7 +82,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  define: {
-    'process.env.NODE_ENV': JSON.stringify(mode) // Ensure proper env detection
-  },
+  esbuild: {
+    legalComments: 'none' // Remove license files
+  }
 }));

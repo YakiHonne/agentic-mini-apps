@@ -1,9 +1,8 @@
 /*
-  Access-Control-Allow-Origin: https://yakihonne.com
-  Access-Control-Allow-Methods: GET, POST, OPTIONS
-  Access-Control-Allow-Headers: Content-Type, Authorization
-
-  /*
-  Content-Security-Policy: frame-ancestors https://yakihonne.com;
-  X-Frame-Options: ALLOW-FROM https://yakihonne.com
-  Access-Control-Allow-Origin: https://yakihonne.com
+  Content-Security-Policy: 
+    default-src 'self' https://yakihonne.com;
+    script-src 'self';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data:;
+    connect-src 'self' https://yakihonne.com;
+    frame-ancestors https://yakihonne.com;
