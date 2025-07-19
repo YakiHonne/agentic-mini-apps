@@ -5,8 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // Whitelisted domains
 const allowedOrigins = [
-  "https://your-whitelisted-domain.com",
-  "https://another-allowed-domain.com" // Add more as needed
+  "https://yakihonne.com/sw-playground",
+  "https://yakihonne.com/" // Add more as needed
 ];
 
 // https://vitejs.dev/config/
