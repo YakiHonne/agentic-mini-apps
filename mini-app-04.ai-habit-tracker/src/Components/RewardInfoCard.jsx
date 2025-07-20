@@ -22,8 +22,7 @@ export default function RewardInfoCard({
     if (stakedAmount === 0) {
       return "Default daily reward: 30 sats per completion";
     } else {
-      const dailyBase = Math.floor(stakedAmount / 30);
-      return `Daily reward: ${dailyBase} sats (${stakedAmount} ÷ 30 days)`;
+      return `Percentage-based rewards: Day 1: 50%, Days 2-6: 60-90%, Day 7+: 100%`;
     }
   };
 

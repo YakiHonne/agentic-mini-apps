@@ -902,22 +902,32 @@ export const calculateDailyRewardAmount = (
   currentDay,
   currentStreak
 ) => {
-  const HABIT_FORMATION_DAYS = 30; // 30-31 days for habit formation
-
-  // Base daily reward calculation
+  // Base reward calculation using percentage system (same as sendCentralizedReward)
   let baseReward;
   if (stakedAmount === 0) {
     baseReward = 30; // Default reward for non-staked habits
   } else {
-    baseReward = Math.floor(stakedAmount / HABIT_FORMATION_DAYS); // Daily portion of staked amount
+    // Use percentage-based system like sendCentralizedReward
+    let rewardPercentage;
+    if (currentDay === 1) {
+      // Day 1: 50% of staked amount
+      rewardPercentage = 0.5;
+    } else if (currentDay >= 7) {
+      // 7+ days: 100% of staked amount
+      rewardPercentage = 1.0;
+    } else {
+      // 2-6 days: Gradual increase from 60% to 90%
+      rewardPercentage = 0.6 + (currentDay - 2) * 0.075; // 60% + 7.5% per day
+    }
+    baseReward = Math.floor(stakedAmount * rewardPercentage);
   }
 
   // Streak bonus calculation (extra reward for maintaining consecutive days)
   let streakBonus = 0;
   if (currentStreak >= 7) {
-    streakBonus = Math.floor(baseReward * 0.5); // 50% bonus for 7+ day streak
+    streakBonus = Math.floor(baseReward * 0.1); // 10% bonus for 7+ day streak
   } else if (currentStreak >= 3) {
-    streakBonus = Math.floor(baseReward * 0.25); // 25% bonus for 3+ day streak
+    streakBonus = Math.floor(baseReward * 0.05); // 5% bonus for 3+ day streak
   }
 
   const totalReward = baseReward + streakBonus;
@@ -926,6 +936,8 @@ export const calculateDailyRewardAmount = (
     baseReward,
     streakBonus,
     totalReward,
+    rewardPercentage:
+      stakedAmount > 0 ? Math.round((baseReward / stakedAmount) * 100) : 0,
     streakLevel:
       currentStreak >= 7 ? "high" : currentStreak >= 3 ? "medium" : "none",
   };
@@ -1020,7 +1032,7 @@ export const createHabitWithPayment = async (
 ) => {
   try {
     // Use the provided staking service address
-    const stakingServiceAddress = "aptitudebalanced51534@getalby.com";
+    const stakingServiceAddress = "zapmindr@wallet.yakihonne.com";
 
     // Create payment request for SWHandler
     const paymentRequest = {
@@ -1035,6 +1047,9 @@ export const createHabitWithPayment = async (
     SWHandler.client.requestPayment(paymentRequest, hostUrl);
     console.log("Payment request sent via SWHandler");
 
+    // Track payment completion to prevent double habit creation
+    let paymentCompleted = false;
+
     // Set up payment response listener
     const paymentResponseHandler = (event) => {
       console.log("Payment event received:", event.data);
@@ -1044,9 +1059,16 @@ export const createHabitWithPayment = async (
         const paymentData = event.data.data;
         console.log("Payment response:", paymentData);
 
-        if (paymentData.status === true) {
+        if (paymentData.status === true && !paymentCompleted) {
           // Payment successful
+          paymentCompleted = true;
           console.log("Payment successful, calling onPaymentSuccess");
+
+          // Clear the timeout to prevent creating habit without stake
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+
           onPaymentSuccess({
             success: true,
             purpose: "habit_creation",
@@ -1057,9 +1079,9 @@ export const createHabitWithPayment = async (
           });
 
           window.removeEventListener("message", paymentResponseHandler);
-        } else {
+        } else if (!paymentCompleted) {
           // Payment failed but don't show error immediately
-          // Let the 10-second timer complete first
+          // Let the 30-second timer complete first for non-staked option
           console.log(
             "Payment failed with status:",
             paymentData.status,
@@ -1074,11 +1096,13 @@ export const createHabitWithPayment = async (
     // Listen for payment response
     window.addEventListener("message", paymentResponseHandler);
 
-    // Set timeout for payment (10 seconds)
-    setTimeout(() => {
+    // Set timeout for payment (30 seconds for non-staked option)
+    const timeoutId = setTimeout(() => {
       window.removeEventListener("message", paymentResponseHandler);
 
-      if (onPaymentTimeout) {
+      // Only call timeout if payment hasn't been completed
+      if (!paymentCompleted && onPaymentTimeout) {
+        paymentCompleted = true; // Prevent any further processing
         onPaymentTimeout({
           success: false,
           purpose: "habit_creation",
@@ -1088,7 +1112,7 @@ export const createHabitWithPayment = async (
           paymentMethod: "swhandler",
         });
       }
-    }, 10000);
+    }, 30000); // Changed from 10000 to 30000 (30 seconds)
 
     return {
       success: true,

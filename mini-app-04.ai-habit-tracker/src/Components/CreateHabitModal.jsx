@@ -161,13 +161,13 @@ export default function CreateHabitModal({
     // If staking amount is set, handle payment with toasts
     if (formData.stakingAmount > 0) {
       setPaymentInProgress(true);
-      setCountdown(10);
+      setCountdown(30);
 
       // Show initial toast
       dispatch(
         addToast({
           type: "info",
-          message: `💳 Payment request sent for ${formData.stakingAmount} sats. Complete in your wallet (10s)...`,
+          message: `💳 Payment request sent for ${formData.stakingAmount} sats. Complete in your wallet (30s)...`,
         })
       );
 

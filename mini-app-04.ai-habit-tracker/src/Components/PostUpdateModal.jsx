@@ -190,7 +190,7 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
         suggestion:
           "Great progress! Your commitment to this habit is showing through your consistent updates.",
         habitRelevance: Math.random() > 0.2 ? "high" : "medium",
-        rewardRecommendation: Math.random() > 0.4 ? "approved" : "pending",
+        rewardRecommendation: "approved", // Always approve for testing - in production this would be real AI analysis
         mediaAnalysis:
           uploadedMedia.length > 0
             ? {

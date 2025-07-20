@@ -1,8 +1,30 @@
 import React from "react";
 import { Brain, TrendingUp, Zap, Target, Award, Eye } from "lucide-react";
+import { calculateDailyRewardAmount } from "../Helpers/PaymentHelpers";
 
 export default function AIAnalysisSection({ analysis, habit }) {
   if (!analysis) return null;
+
+  // Calculate the reward amount using the same logic as PostUpdateModal
+  const calculateRewardAmount = () => {
+    if (!habit || analysis.rewardRecommendation !== "approved") {
+      return 0;
+    }
+
+    // Calculate new streak (same logic as PostUpdateModal)
+    const totalHabitDays = habit.totalCompletions + 1; // +1 for current completion
+    const newStreak = habit.currentStreak + 1; // Assuming this is a new completion
+
+    const rewardInfo = calculateDailyRewardAmount(
+      habit.stakingAmount || 0,
+      totalHabitDays,
+      newStreak
+    );
+
+    return rewardInfo.totalReward;
+  };
+
+  const calculatedReward = calculateRewardAmount();
 
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
@@ -104,7 +126,7 @@ export default function AIAnalysisSection({ analysis, habit }) {
               <Zap size={16} />
               <span className={analysis.rewardRecommendation}>
                 {analysis.rewardRecommendation === "approved"
-                  ? `+${habit.stakingAmount} sats`
+                  ? `+${calculatedReward} sats`
                   : "Reward Pending"}
               </span>
             </div>

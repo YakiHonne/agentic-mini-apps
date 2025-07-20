@@ -24,7 +24,7 @@ export default function CreateHabitWithPayment({
 }) {
   const dispatch = useDispatch();
   const [paymentStatus, setPaymentStatus] = useState("waiting");
-  const [timeRemaining, setTimeRemaining] = useState(10);
+  const [timeRemaining, setTimeRemaining] = useState(30);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Start payment request when modal opens
@@ -71,7 +71,7 @@ export default function CreateHabitWithPayment({
 
     setIsProcessing(true);
     setPaymentStatus("waiting");
-    setTimeRemaining(10);
+    setTimeRemaining(30);
 
     let countdownInterval;
     let paymentCompleted = false;
@@ -244,7 +244,7 @@ export default function CreateHabitWithPayment({
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-blue-500 h-2 rounded-full transition-all duration-1000"
-                  style={{ width: `${((10 - timeRemaining) / 10) * 100}%` }}
+                  style={{ width: `${((30 - timeRemaining) / 30) * 100}%` }}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-2">
