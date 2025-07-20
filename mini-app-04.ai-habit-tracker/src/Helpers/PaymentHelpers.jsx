@@ -1020,7 +1020,7 @@ export const createHabitWithPayment = async (
 ) => {
   try {
     // Use the provided staking service address
-    const stakingServiceAddress = "wispykindness363309@getalby.com";
+    const stakingServiceAddress = "aptitudebalanced51534@getalby.com";
 
     // Create payment request for SWHandler
     const paymentRequest = {
