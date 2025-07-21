@@ -64,60 +64,69 @@ export default function RewardInfoCard({
         </div>
       </div>
 
-      <div className="reward-breakdown">
-        <div className="reward-row">
-          <div className="reward-label">
-            <Target size={16} />
-            <span>Base Reward</span>
-          </div>
-          <div className="reward-value">
-            <span className="base-reward">{rewardInfo.baseReward} sats</span>
-          </div>
-        </div>
-
-        {rewardInfo.streakBonus > 0 && (
+      {stakedAmount > 0 ? (
+        <div className="reward-breakdown">
           <div className="reward-row">
             <div className="reward-label">
-              <Flame size={16} />
-              <span>Streak Bonus</span>
+              <Target size={16} />
+              <span>Base Reward</span>
+            </div>
+            <div className="reward-value">
+              <span className="base-reward">{rewardInfo.baseReward} sats</span>
+            </div>
+          </div>
+
+          {rewardInfo.streakBonus > 0 && (
+            <div className="reward-row">
+              <div className="reward-label">
+                <Flame size={16} />
+                <span>Streak Bonus</span>
+              </div>
+              <div className="reward-value">
+                <span
+                  className="streak-bonus"
+                  style={{ color: getRewardColor() }}
+                >
+                  +{rewardInfo.streakBonus} sats
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="reward-row total-row">
+            <div className="reward-label">
+              <Zap size={16} />
+              <span>Total Daily Reward</span>
             </div>
             <div className="reward-value">
               <span
-                className="streak-bonus"
+                className="total-reward"
                 style={{ color: getRewardColor() }}
               >
-                +{rewardInfo.streakBonus} sats
+                {rewardInfo.totalReward} sats
               </span>
             </div>
           </div>
-        )}
 
-        <div className="reward-row total-row">
-          <div className="reward-label">
-            <Zap size={16} />
-            <span>Total Daily Reward</span>
-          </div>
-          <div className="reward-value">
-            <span className="total-reward" style={{ color: getRewardColor() }}>
-              {rewardInfo.totalReward} sats
-            </span>
+          <div className="reward-row">
+            <div className="reward-label">
+              <Calendar size={16} />
+              <span>Progress</span>
+            </div>
+            <div className="reward-value">
+              <span className="progress-text">
+                {completionStatus.status === "completed"
+                  ? "Habit Formed!"
+                  : `${totalHabitDays}/30 days`}
+              </span>
+            </div>
           </div>
         </div>
-
-        <div className="reward-row">
-          <div className="reward-label">
-            <Calendar size={16} />
-            <span>Progress</span>
-          </div>
-          <div className="reward-value">
-            <span className="progress-text">
-              {completionStatus.status === "completed"
-                ? "Habit Formed!"
-                : `${totalHabitDays}/30 days`}
-            </span>
-          </div>
+      ) : (
+        <div className="reward-none">
+          <p className="reward-message">No reward (not staked)</p>
         </div>
-      </div>
+      )}
 
       <div className="reward-explanation">
         <div className="explanation-item">

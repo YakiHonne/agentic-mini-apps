@@ -119,7 +119,7 @@ export default function AIAnalysisSection({ analysis, habit }) {
         </div>
       )}
 
-      {analysis.rewardRecommendation && (
+      {analysis.rewardRecommendation && habit.stakingAmount > 0 && (
         <div className="reward-breakdown">
           <div className="reward-info">
             <div className="reward-amount">

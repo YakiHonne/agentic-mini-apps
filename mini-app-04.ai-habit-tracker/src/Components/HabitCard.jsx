@@ -21,6 +21,13 @@ import {
 export default function HabitCard({ habit, onPostUpdate }) {
   const dispatch = useDispatch();
 
+  // Calculate reward info at the top so it's always defined
+  const rewardInfo = calculateDailyRewardAmount(
+    habit.stakingAmount || 0,
+    habit.totalCompletions + 1,
+    habit.currentStreak + 1
+  );
+
   const handleMarkComplete = () => {
     // Check if user can check-in today
     if (!canCheckInToday(habit.lastCompletedAt)) {
@@ -127,13 +134,16 @@ export default function HabitCard({ habit, onPostUpdate }) {
               <Trophy className="trophy-icon" size={24} />
             </div>
           ) : (
-            <button
-              className="complete-btn"
-              onClick={handleMarkComplete}
-              title="Mark as complete for today"
+            // Manual check-in disabled: Only AI can check in habits
+            <div
+              className="manual-checkin-disabled"
+              title="Manual check-in disabled. Use AI update."
             >
-              <CheckCircle size={20} />
-            </button>
+              <CheckCircle
+                size={20}
+                style={{ opacity: 0.3, cursor: "not-allowed" }}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -205,6 +215,9 @@ export default function HabitCard({ habit, onPostUpdate }) {
           )}
         </div>
       </div>
+
+      {/* Reward Status */}
+      {/* Removed reward-status section as per new requirements */}
     </div>
   );
 }

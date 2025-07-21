@@ -878,46 +878,82 @@ export const processCentralizedStaking = async (
 export const calculateDailyRewardAmount = (
   stakedAmount,
   currentDay,
-  currentStreak
+  currentStreak,
+  totalPaidSoFar = 0 // Optionally track total paid so far for capping
 ) => {
-  // Base reward calculation using percentage system (same as sendCentralizedReward)
-  let baseReward;
+  // If not staked, use default
   if (stakedAmount === 0) {
-    baseReward = 30; // Default reward for non-staked habits
-  } else {
-    // Use percentage-based system like sendCentralizedReward
-    let rewardPercentage;
-    if (currentDay === 1) {
-      // Day 1: 50% of staked amount
-      rewardPercentage = 0.5;
-    } else if (currentDay >= 7) {
-      // 7+ days: 100% of staked amount
-      rewardPercentage = 1.0;
-    } else {
-      // 2-6 days: Gradual increase from 60% to 90%
-      rewardPercentage = 0.6 + (currentDay - 2) * 0.075; // 60% + 7.5% per day
-    }
-    baseReward = Math.floor(stakedAmount * rewardPercentage);
+    return {
+      baseReward: 30,
+      streakBonus: 0,
+      totalReward: 30,
+      rewardPercentage: 0,
+      streakLevel: "none",
+    };
   }
 
-  // Streak bonus calculation (extra reward for maintaining consecutive days)
+  let baseReward = 0;
   let streakBonus = 0;
-  if (currentStreak >= 7) {
-    streakBonus = Math.floor(baseReward * 0.1); // 10% bonus for 7+ day streak
-  } else if (currentStreak >= 3) {
-    streakBonus = Math.floor(baseReward * 0.05); // 5% bonus for 3+ day streak
+  let maxReward = stakedAmount + Math.floor(stakedAmount * 0.2); // cap: stake + 20%
+
+  if (stakedAmount > 100) {
+    // 30-day distribution (linear)
+    baseReward = Math.floor(stakedAmount / 30);
+    // On the last day, pay out any remainder to ensure full stake is paid
+    if (currentDay === 30) {
+      baseReward = stakedAmount - Math.floor(stakedAmount / 30) * 29;
+    }
+    // Streak bonus: +5% of stake on day 10, +10% on day 30
+    if (currentDay === 10 && currentStreak >= 10) {
+      streakBonus = Math.floor(stakedAmount * 0.05);
+    } else if (currentDay === 30 && currentStreak >= 30) {
+      streakBonus = Math.floor(stakedAmount * 0.1);
+    }
+  } else {
+    // 7-day stepped distribution for low stakes
+    if (currentDay === 1) {
+      baseReward = Math.floor(stakedAmount * 0.3); // 30%
+    } else if (currentDay === 2 || currentDay === 3) {
+      baseReward = Math.floor(stakedAmount * 0.5); // 50%
+    } else if (currentDay >= 4 && currentDay <= 6) {
+      baseReward = Math.floor(stakedAmount * 0.7); // 70%
+    } else if (currentDay >= 7) {
+      baseReward = stakedAmount; // 100%
+    }
+    // Streak bonus (flat, only on day 3 and 7)
+    if (currentDay === 3 && currentStreak >= 3) {
+      streakBonus = 1;
+    } else if (currentDay === 7 && currentStreak >= 7) {
+      streakBonus = 2;
+    }
   }
 
-  const totalReward = baseReward + streakBonus;
+  // Cap total payout
+  let totalReward = baseReward + streakBonus;
+  if (
+    typeof totalPaidSoFar === "number" &&
+    totalPaidSoFar + totalReward > maxReward
+  ) {
+    totalReward = Math.max(0, maxReward - totalPaidSoFar);
+  }
+
+  let rewardPercentage =
+    stakedAmount > 0 ? Math.round((baseReward / stakedAmount) * 100) : 0;
+  let streakLevel =
+    currentStreak >= 30
+      ? "high"
+      : currentStreak >= 10
+      ? "medium"
+      : currentStreak >= 7
+      ? "low"
+      : "none";
 
   return {
     baseReward,
     streakBonus,
     totalReward,
-    rewardPercentage:
-      stakedAmount > 0 ? Math.round((baseReward / stakedAmount) * 100) : 0,
-    streakLevel:
-      currentStreak >= 7 ? "high" : currentStreak >= 3 ? "medium" : "none",
+    rewardPercentage,
+    streakLevel,
   };
 };
 

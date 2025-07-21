@@ -429,34 +429,38 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
         setRewardEarned(rewardInfo.totalReward);
         setPostingSuccess(true);
 
-        // Call backend to claim reward immediately after AI approval
-        try {
-          await sendCentralizedReward(
-            userData.pubkey,
-            rewardInfo.totalReward, // Use the actual reward amount (base + streak bonus)
-            habit.name,
-            totalHabitDays,
-            hostUrl
-          );
-        } catch (err) {
-          dispatch(
-            addToast({
-              type: "error",
-              message: `Backend reward claim failed: ${err.message}`,
-            })
-          );
+        // Call backend to claim reward immediately after AI approval, only if stakedAmount > 0
+        if ((habit.stakingAmount || 0) > 0) {
+          try {
+            await sendCentralizedReward(
+              userData.pubkey,
+              rewardInfo.totalReward, // Use the actual reward amount (base + streak bonus)
+              habit.name,
+              totalHabitDays,
+              hostUrl
+            );
+          } catch (err) {
+            dispatch(
+              addToast({
+                type: "error",
+                message: `Backend reward claim failed: ${err.message}`,
+              })
+            );
+          }
         }
 
         // Show reward success message immediately - no payment modal needed
         // since rewards are handled by the backend
         let rewardMessage = `⚡ Reward ${rewardInfo.totalReward} sats zapped to your lightning wallet! Great work! 🎉`;
 
-        dispatch(
-          addToast({
-            type: "success",
-            message: rewardMessage,
-          })
-        );
+        if ((habit.stakingAmount || 0) > 0) {
+          dispatch(
+            addToast({
+              type: "success",
+              message: rewardMessage,
+            })
+          );
+        }
       } else {
         setPostingSuccess(false);
       }
@@ -865,31 +869,33 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
                 </div>
 
                 {/* Reward Status */}
-                <div className="result-card">
-                  <div className="result-header">
-                    <div className="result-icon">
-                      <Zap size={20} className="warning-color" />
+                {habit.stakingAmount > 0 && (
+                  <div className="result-card">
+                    <div className="result-header">
+                      <div className="result-icon">
+                        <Zap size={20} className="warning-color" />
+                      </div>
+                      <h4>Reward Status</h4>
                     </div>
-                    <h4>Reward Status</h4>
+                    <div className="result-content">
+                      {rewardEarned > 0 ? (
+                        <div className="reward-earned">
+                          <p className="reward-message">Sats earned! ⚡</p>
+                          <p className="reward-amount">{rewardEarned} sats</p>
+                        </div>
+                      ) : (
+                        <div className="reward-pending">
+                          <p className="reward-message">
+                            {aiAnalysis?.rewardRecommendation === "pending"
+                              ? "Reward pending verification"
+                              : "No reward this time"}
+                          </p>
+                          <p className="reward-amount">0 sats</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="result-content">
-                    {rewardEarned > 0 ? (
-                      <div className="reward-earned">
-                        <p className="reward-message">Sats earned! ⚡</p>
-                        <p className="reward-amount">{rewardEarned} sats</p>
-                      </div>
-                    ) : (
-                      <div className="reward-pending">
-                        <p className="reward-message">
-                          {aiAnalysis?.rewardRecommendation === "pending"
-                            ? "Reward pending verification"
-                            : "No reward this time"}
-                        </p>
-                        <p className="reward-amount">0 sats</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                )}
 
                 {/* AI Analysis Summary */}
                 {aiAnalysis && (
