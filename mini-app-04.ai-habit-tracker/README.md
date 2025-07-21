@@ -11,6 +11,15 @@ A lightning-powered habit tracker built for the Nostr ecosystem. Users **stake s
 - Lightning pay-in / pay-out via LNURL-Pay, NWC, **and** NIP-57 zap-requests
 - Minimal shared-custody ledger until more advanced escrow is live
 
+> **Smart Widget Handler SDK Integration :**
+>
+> - Using official YakiHonne SDK (SWHandler) for:
+>   - Nostr login/authentication ([App.jsx](https://github.com/Vib-UX/agentic-mini-apps/blob/main/mini-app-04.ai-habit-tracker/src/App.jsx))
+>   - Nostr post publishing ([PostUpdateModal.jsx](https://github.com/Vib-UX/agentic-mini-apps/blob/main/mini-app-04.ai-habit-tracker/src/Components/PostUpdateModal.jsx#L286))
+>   - Payments & staking ([PaymentHelpers.jsx](https://github.com/Vib-UX/agentic-mini-apps/blob/main/mini-app-04.ai-habit-tracker/src/Helpers/PaymentHelpers.jsx#L459))
+>   - Staking service address: `zapmindr@wallet.yakihonne.com` ([PaymentHelpers.jsx](https://github.com/Vib-UX/agentic-mini-apps/blob/main/mini-app-04.ai-habit-tracker/src/Helpers/PaymentHelpers.jsx#L1046))
+> - Backend custodian node: `zapmindr@wallet.yakihonne.com`
+
 ---
 
 ## Payment Architecture (v0)
