@@ -1,5 +1,6 @@
 import { SimplePool, nip04, getPublicKey, Relay } from "nostr-tools";
 import SWHandler from "smart-widget-handler";
+import { claimReward } from "./BackendAPI.js";
 
 // Utility: hex string to Uint8Array
 function hexToBytes(hex) {
@@ -789,9 +790,9 @@ export const getUserWalletAddress = async (userData, hostUrl = null) => {
 // New function for centralized reward system (no wallet signing required)
 export const sendCentralizedReward = async (
   userPubkey,
-  stakedAmount,
+  amount, // now this is the actual reward amount to send
   habitName,
-  totalHabitDays, // Changed from streakDays to totalHabitDays
+  totalHabitDays,
   hostUrl = null
 ) => {
   try {
@@ -804,43 +805,20 @@ export const sendCentralizedReward = async (
       throw new Error("User has no lightning address for reward");
     }
 
-    // Calculate reward amount based on total habit days
-    let rewardAmount;
-    let rewardPercentage;
-
-    if (totalHabitDays === 1) {
-      // Day 1: Only 50% of staked amount
-      rewardPercentage = 0.5;
-      rewardAmount = Math.floor(stakedAmount * rewardPercentage);
-    } else if (totalHabitDays >= 7) {
-      // 7+ days: 100% of staked amount
-      rewardPercentage = 1.0;
-      rewardAmount = stakedAmount;
-    } else {
-      // 2-6 days: Gradual increase from 60% to 90%
-      rewardPercentage = 0.6 + (totalHabitDays - 2) * 0.075; // 60% + 7.5% per day
-      rewardAmount = Math.floor(stakedAmount * rewardPercentage);
-    }
-
-    // Create reward payment request for centralized wallet
-    const paymentRequest = {
-      address: userLnAddress,
-      amount: rewardAmount,
-      nostrPubkey: userPubkey,
-    };
-
-    // For centralized rewards, we don't need user wallet signing
-    // The custodian wallet handles the payment
-    const result = await requestPayment(paymentRequest, hostUrl);
+    // Use backend API for reward claim
+    const result = await claimReward({
+      walletAddress: userLnAddress,
+      amount, // use directly
+      habitName,
+      userPubkey,
+    });
 
     return {
-      success: true,
+      success: result.success,
       purpose: "centralized_reward",
       habitName,
-      totalHabitDays, // Changed from streakDays
-      stakedAmount,
-      rewardAmount,
-      rewardPercentage: Math.round(rewardPercentage * 100),
+      totalHabitDays,
+      amount,
       userLightningAddress: userLnAddress,
       paymentMethod: "centralized_custodian",
       result,
