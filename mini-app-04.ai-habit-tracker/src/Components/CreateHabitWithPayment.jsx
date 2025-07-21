@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Plus,
 } from "lucide-react";
+import { nanoid } from "nanoid";
 
 export default function CreateHabitWithPayment({
   isOpen,
@@ -21,11 +22,13 @@ export default function CreateHabitWithPayment({
   hostUrl = null,
   onHabitCreated,
   onHabitCreationFailed,
+  habitId, // always provided by parent
 }) {
   const dispatch = useDispatch();
   const [paymentStatus, setPaymentStatus] = useState("waiting");
   const [timeRemaining, setTimeRemaining] = useState(30);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [backendSaving, setBackendSaving] = useState(false);
 
   // Start payment request when modal opens
   useEffect(() => {
@@ -76,18 +79,42 @@ export default function CreateHabitWithPayment({
     let countdownInterval;
     let paymentCompleted = false;
 
+    // Call backend to record the habit entry as soon as payment processing starts
+    setBackendSaving(true);
+    const lightningAddress = userData.lud16 || userData.lud06 || null;
+    const habitPayload = {
+      id: habitId,
+      userPubkey: userData.pubkey,
+      lightningAddress,
+      habitName,
+      stakedAmount: amount,
+      paymentPreimage: null, // Not available yet
+      paymentHash: null,
+      timestamp: new Date().toISOString(),
+      extra: { paymentMethod: "swhandler", status: "pending" },
+    };
+    try {
+      await recordHabitEntry(habitPayload);
+    } catch (err) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: `Backend call failed (early): ${err.message}`,
+        })
+      );
+    } finally {
+      setBackendSaving(false);
+    }
+
     try {
       countdownInterval = setInterval(() => {
         setTimeRemaining((prev) => {
           if (prev <= 1) {
             clearInterval(countdownInterval);
-
-            // If payment hasn't completed by timeout, show options
             if (!paymentCompleted) {
               setIsProcessing(false);
               setPaymentStatus("timeout");
             }
-
             return 0;
           }
           return prev - 1;
@@ -99,49 +126,63 @@ export default function CreateHabitWithPayment({
         amount,
         habitName,
         hostUrl,
-        (paymentResult) => {
+        async (paymentResult) => {
           paymentCompleted = true;
           if (countdownInterval) clearInterval(countdownInterval);
           setIsProcessing(false);
 
           if (paymentResult.success) {
             setPaymentStatus("success");
+            setBackendSaving(true);
+            // Optionally update backend with final status and preimage
+            const finalPayload = {
+              ...habitPayload,
+              id: habitId,
+              paymentPreimage: paymentResult.preImage,
+              extra: { ...habitPayload.extra, status: "success" },
+            };
+            try {
+              await recordHabitEntry(finalPayload);
+            } catch (err) {
+              dispatch(
+                addToast({
+                  type: "error",
+                  message: `Backend call failed (final): ${err.message}`,
+                })
+              );
+            } finally {
+              setBackendSaving(false);
+            }
             dispatch(
               addToast({
                 type: "success",
                 message: `✅ Habit "${habitName}" created! Payment of ${amount} sats received.`,
               })
             );
-
             if (onHabitCreated) {
               onHabitCreated(paymentResult);
             }
           }
-          // Note: We don't handle payment failure here anymore
-          // We let the timeout handle it to wait the full 10 seconds
         },
         (timeoutResult) => {
-          // This will be called after 10 seconds if no successful payment
           paymentCompleted = true;
           if (countdownInterval) clearInterval(countdownInterval);
           setIsProcessing(false);
           setPaymentStatus("timeout");
-        }
+        },
+        habitId // pass habitId to createHabitWithPayment if needed
       );
     } catch (error) {
       paymentCompleted = true;
       if (countdownInterval) clearInterval(countdownInterval);
       setIsProcessing(false);
       setPaymentStatus("failed");
-
-      console.error("Habit creation failed:", error);
       dispatch(
         addToast({
           type: "error",
           message: `❌ Habit creation failed: ${error.message}`,
         })
       );
-
       if (onHabitCreationFailed) {
         onHabitCreationFailed({ success: false, error: error.message });
       }

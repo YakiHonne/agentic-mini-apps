@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { X, Target, Zap, Type, Shield, Lightbulb } from "lucide-react";
 import { addToast } from "../Store/toastSlice";
 import { createHabitWithPayment } from "../Helpers/PaymentHelpers";
+import { recordHabitEntry } from "../Helpers/BackendAPI";
+import { nanoid } from "nanoid";
 
 const HABIT_EMOJIS = [
   "🎯",
@@ -111,6 +113,11 @@ export default function CreateHabitModal({
   hostUrl,
 }) {
   const dispatch = useDispatch();
+  const habitIdRef = useRef();
+  // Generate a new habitId each time the modal is opened
+  useEffect(() => {
+    habitIdRef.current = nanoid();
+  }, []);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -158,11 +165,33 @@ export default function CreateHabitModal({
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    // If staking amount is set, handle payment with toasts
+    // If staking amount is set, call backend before payment
     if (formData.stakingAmount > 0) {
+      // Prepare payload
+      const lightningAddress = userData.lud16 || userData.lud06 || null;
+      const habitPayload = {
+        id: habitIdRef.current,
+        userPubkey: userData.pubkey,
+        lightningAddress,
+        habitName: formData.name,
+        stakedAmount: formData.stakingAmount,
+        paymentPreimage: null,
+        paymentHash: null,
+        timestamp: new Date().toISOString(),
+        extra: { paymentMethod: "swhandler", status: "pending" },
+      };
+      try {
+        await recordHabitEntry(habitPayload); // <-- Backend API call
+      } catch (err) {
+        dispatch(
+          addToast({
+            type: "error",
+            message: `Backend call failed (early): ${err.message}`,
+          })
+        );
+      }
       setPaymentInProgress(true);
       setCountdown(30);
-
       // Show initial toast
       dispatch(
         addToast({
@@ -170,7 +199,6 @@ export default function CreateHabitModal({
           message: `💳 Payment request sent for ${formData.stakingAmount} sats. Complete in your wallet (30s)...`,
         })
       );
-
       // Start countdown
       const countdownInterval = setInterval(() => {
         setCountdown((prev) => {
@@ -181,7 +209,6 @@ export default function CreateHabitModal({
           return prev - 1;
         });
       }, 1000);
-
       try {
         await createHabitWithPayment(
           userData.pubkey,
@@ -192,7 +219,6 @@ export default function CreateHabitModal({
           (paymentResult) => {
             clearInterval(countdownInterval);
             setPaymentInProgress(false);
-
             if (paymentResult.success) {
               dispatch(
                 addToast({
@@ -200,16 +226,14 @@ export default function CreateHabitModal({
                   message: `✅ Payment successful! Creating habit "${formData.name}"...`,
                 })
               );
-
               // Create habit with payment result
-              createHabit(paymentResult);
+              createHabit(paymentResult, habitIdRef.current);
             }
           },
           // Payment timeout callback
           (timeoutResult) => {
             clearInterval(countdownInterval);
             setPaymentInProgress(false);
-
             // Automatically create habit without stake on timeout
             dispatch(
               addToast({
@@ -217,7 +241,6 @@ export default function CreateHabitModal({
                 message: `✅ Habit "${formData.name}" created without stake. You can stake later!`,
               })
             );
-
             // Create habit without payment
             const habitDataWithoutStake = {
               ...formData,
@@ -228,16 +251,16 @@ export default function CreateHabitModal({
                 message: "Habit created without stake due to payment timeout",
               },
               createdAt: new Date().toISOString(),
+              id: habitIdRef.current,
             };
-
             onSubmit(habitDataWithoutStake);
             onClose(); // Return to main screen
-          }
+          },
+          habitIdRef.current // Pass habitId to createHabitWithPayment
         );
       } catch (error) {
         clearInterval(countdownInterval);
         setPaymentInProgress(false);
-
         dispatch(
           addToast({
             type: "error",
@@ -247,19 +270,18 @@ export default function CreateHabitModal({
       }
     } else {
       // No staking, create habit directly
-      createHabit();
+      createHabit(null, habitIdRef.current);
     }
   };
 
-  const createHabit = (stakingResult = null) => {
+  const createHabit = (stakingResult = null, habitId = null) => {
     setIsCreatingHabit(true);
-
     const habitData = {
       ...formData,
       stakingResult, // Include staking payment result if available
       createdAt: new Date().toISOString(),
+      id: habitId,
     };
-
     onSubmit(habitData);
     setIsCreatingHabit(false);
     onClose(); // Close modal after creating habit

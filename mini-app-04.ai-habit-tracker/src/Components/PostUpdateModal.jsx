@@ -34,6 +34,7 @@ import {
   calculateStreakStatus,
   canCheckInToday,
   getHabitCompletionStatus,
+  sendCentralizedReward,
 } from "../Helpers/PaymentHelpers";
 import relaysOnPlatform from "../Content/Relays";
 
@@ -428,35 +429,27 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
         setRewardEarned(rewardInfo.totalReward);
         setPostingSuccess(true);
 
-        // Show streak bonus message if applicable
-        if (streakStatus.streakBroken && habit.currentStreak > 0) {
+        // Call backend to claim reward immediately after AI approval
+        try {
+          await sendCentralizedReward(
+            userData.pubkey,
+            rewardInfo.totalReward, // Use the actual reward amount (base + streak bonus)
+            habit.name,
+            totalHabitDays,
+            hostUrl
+          );
+        } catch (err) {
           dispatch(
             addToast({
-              type: "warning",
-              message: `Streak reset for "${habit.name}". Starting fresh at day 1! 💪`,
+              type: "error",
+              message: `Backend reward claim failed: ${err.message}`,
             })
           );
         }
 
-        // Prepare reward payment details with calculated amount
-        const rewardDetails = {
-          amount: rewardInfo.totalReward,
-          baseReward: rewardInfo.baseReward,
-          streakBonus: rewardInfo.streakBonus,
-          stakedAmount: habit.stakingAmount || 0, // Original staked amount
-          habitName: habit.name,
-          streakDays: newStreak,
-          totalDays: totalHabitDays,
-          description: `Daily reward for ${habit.name} - Day ${totalHabitDays} (${newStreak} day streak)`,
-        };
-
         // Show reward success message immediately - no payment modal needed
         // since rewards are handled by the backend
-        let rewardMessage = `🎉 Great progress today! Your reward of ${rewardInfo.totalReward} sats will reach your wallet soon. Stay tuned!`;
-
-        if (rewardInfo.streakBonus > 0) {
-          rewardMessage = `🎉 Amazing streak! Your reward of ${rewardInfo.totalReward} sats (${rewardInfo.baseReward} base + ${rewardInfo.streakBonus} streak bonus) will reach your wallet soon!`;
-        }
+        let rewardMessage = `⚡ Reward ${rewardInfo.totalReward} sats zapped to your lightning wallet! Great work! 🎉`;
 
         dispatch(
           addToast({
@@ -464,8 +457,6 @@ export default function PostUpdateModal({ habit, userData, hostUrl, onClose }) {
             message: rewardMessage,
           })
         );
-
-        setPendingReward(rewardDetails); // Keep for potential future use
       } else {
         setPostingSuccess(false);
       }
