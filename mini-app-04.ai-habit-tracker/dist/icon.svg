@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="lightningGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#eab308;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="95" fill="#1e1b4b" stroke="#3730a3" stroke-width="4"/>
+  
+  <!-- Brain Shape -->
+  <path d="M70 80 C50 70, 50 50, 70 45 C80 35, 100 35, 110 45 C130 40, 150 50, 150 70 C155 85, 145 100, 130 105 C140 120, 130 140, 110 145 C100 155, 80 155, 70 145 C50 140, 45 120, 50 105 C35 100, 30 85, 35 70 C40 55, 55 50, 70 55 Z" 
+        fill="url(#brainGradient)" 
+        filter="url(#glow)"
+        opacity="0.9"/>
+  
+  <!-- Brain Details -->
+  <path d="M75 70 C85 65, 95 70, 100 75 C105 70, 115 65, 125 70" 
+        stroke="#4c1d95" 
+        stroke-width="2" 
+        fill="none" 
+        opacity="0.6"/>
+  <path d="M70 90 C80 85, 90 90, 95 95 C100 90, 110 85, 120 90" 
+        stroke="#4c1d95" 
+        stroke-width="2" 
+        fill="none" 
+        opacity="0.6"/>
+  <path d="M75 110 C85 105, 95 110, 105 115 C110 110, 120 105, 125 110" 
+        stroke="#4c1d95" 
+        stroke-width="2" 
+        fill="none" 
+        opacity="0.6"/>
+  
+  <!-- Checkmarks for Habits -->
+  <g transform="translate(55, 125)">
+    <circle cx="0" cy="0" r="12" fill="#10b981" opacity="0.9"/>
+    <path d="M-6 0 L-2 4 L6 -4" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <g transform="translate(100, 140)">
+    <circle cx="0" cy="0" r="12" fill="#10b981" opacity="0.9"/>
+    <path d="M-6 0 L-2 4 L6 -4" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <g transform="translate(145, 125)">
+    <circle cx="0" cy="0" r="12" fill="#10b981" opacity="0.9"/>
+    <path d="M-6 0 L-2 4 L6 -4" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Lightning Bolt for Bitcoin -->
+  <g transform="translate(160, 45) scale(0.8)">
+    <path d="M0 0 L-8 12 L-2 12 L-4 20 L8 8 L2 8 L4 0 Z" 
+          fill="url(#lightningGradient)" 
+          filter="url(#glow)"/>
+  </g>
+  
+  <!-- Progress Dots -->
+  <circle cx="40" cy="60" r="3" fill="#06d6a0" opacity="0.8"/>
+  <circle cx="45" cy="70" r="3" fill="#06d6a0" opacity="0.6"/>
+  <circle cx="50" cy="80" r="3" fill="#06d6a0" opacity="0.4"/>
+  
+  <circle cx="160" cy="60" r="3" fill="#06d6a0" opacity="0.8"/>
+  <circle cx="155" cy="70" r="3" fill="#06d6a0" opacity="0.6"/>
+  <circle cx="150" cy="80" r="3" fill="#06d6a0" opacity="0.4"/>
+</svg> 

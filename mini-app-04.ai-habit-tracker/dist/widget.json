@@ -1,0 +1,44 @@
+{
+  "pubkey": "placeholder-pubkey-will-be-replaced-during-deployment",
+  "widget": {
+    "title": "AI Habit Tracker",
+    "description": "AI-powered habit tracker with Bitcoin staking for increased commitment. Track progress, earn rewards, and build lasting habits with intelligent analysis.",
+    "appUrl": "https://agentic-habit-tracker-miniapp.vercel.app/",
+    "iconUrl": "https://agentic-habit-tracker-miniapp.vercel.app/icon.svg",
+    "imageUrl": "https://agentic-habit-tracker-miniapp.vercel.app/thumbnail.svg",
+    "buttonTitle": "Track Habits",
+    "version": "1.0.0",
+    "author": "Agentic Mini-Apps",
+    "category": "productivity",
+    "tags": [
+      "productivity",
+      "habits",
+      "ai",
+      "bitcoin",
+      "lightning",
+      "tracker",
+      "wellness",
+      "staking",
+      "rewards",
+      "streak",
+      "motivation",
+      "analytics",
+      "progress",
+      "commitment",
+      "nostr"
+    ],
+    "features": [
+      "AI-powered habit analysis",
+      "Bitcoin staking for commitment",
+      "Lightning rewards for streaks",
+      "Progress tracking with stats",
+      "Media upload for proof",
+      "Nostr integration",
+      "Smart notifications"
+    ],
+    "screenshots": [
+      "https://agentic-habit-tracker-miniapp.vercel.app/thumbnail.svg"
+    ],
+    "permissions": ["nostr-connect", "file-upload", "notifications"]
+  }
+}
