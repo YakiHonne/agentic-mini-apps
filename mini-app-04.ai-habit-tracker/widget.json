@@ -1,10 +1,10 @@
 {
   "pubkey": "515e21f88352dd6a9b3899fd2f903981fdbac7e72f8f738dd2721e8729ef47be",
   "widget": {
-    "title": "AI Habit Tracker",
+    "title": "⚡️ ZapMindr",
     "description": "AI-powered habit tracker with Bitcoin staking for increased commitment. Track progress, earn rewards, and build lasting habits with intelligent analysis.",
     "appUrl": "https://agentic-habit-tracker-miniapp.vercel.app/",
-    "iconUrl": "https://agentic-habit-tracker-miniapp.vercel.app/icon.svg",
+    "iconUrl": "https://agentic-habit-tracker-miniapp.vercel.app/logo.png",
     "imageUrl": "https://agentic-habit-tracker-miniapp.vercel.app/thumbnail.svg",
     "buttonTitle": "Track Habits",
     "version": "1.0.0",
