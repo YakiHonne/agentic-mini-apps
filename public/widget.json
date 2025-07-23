@@ -1,0 +1,15 @@
+{
+  "pubkey": "52524fbb6588d0f8a73677fd3e4f0cefc204fd310f459bc6c476e23dae4025dc",
+  "widget": {
+    "title": "Bitstream Analytics",
+    "appUrl": "https://bitstream-analytics.lovable.app/",
+    "iconUrl": "https://imgur.com/a/bitstream-analytics-H9DTZRW",
+    "imageUrl": "https://imgur.com/a/bitstream-analytics-H9DTZRW",
+    "buttonTitle": "Click to Learn",
+    "tags": [
+      "nostr",
+      "bitcoin",
+      "yakihonne"
+    ]
+  }
+}

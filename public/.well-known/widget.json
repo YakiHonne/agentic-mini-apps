@@ -1,0 +1,11 @@
+{
+  "pubkey": "52524fbb6588d0f8a73677fd3e4f0cefc204fd310f459bc6c476e23dae4025dc",
+  "widget": {
+    "title": "BitStreamAnalyticss",
+    "appUrl": "https://bitstreamanalytics.netlify.app/",
+    "iconUrl": "https://bitstreamanalytics.netlify.app/icon.png",
+    "imageUrl": "https://bitstreamanalytics.netlify.app/thumbnail.png",
+    "buttonTitle": "Launch Widget",
+    "tags": ["tool", "utility", "nostr"]
+  }
+}
