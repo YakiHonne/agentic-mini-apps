@@ -1,13 +1,20 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { SWHandler } from 'smart-widget-handler'; // Import the SDK
+import { SWHandler } from 'smart-widget-handler';
 
-// Initialize your app
-const root = createRoot(document.getElementById("root")!);
-root.render(<App />);
-
-// Notify host application that the widget is ready
-SWHandler.client.ready().catch(error => {
-  console.error('Failed to notify host application:', error);
+// Initialize the SDK first
+SWHandler.init({
+  // Add any required configuration here
+}).then(() => {
+  // Render the app
+  const root = createRoot(document.getElementById("root")!);
+  root.render(<App />);
+  
+  // Send ready state immediately after first render
+  SWHandler.client.ready()
+    .then(() => console.debug('Ready state sent successfully'))
+    .catch(error => console.error('Failed to send ready state:', error));
+}).catch(error => {
+  console.error('SDK initialization failed:', error);
 });
