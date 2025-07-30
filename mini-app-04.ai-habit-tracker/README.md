@@ -22,7 +22,9 @@ A lightning-powered habit tracker built for the Nostr ecosystem. Users **stake s
 
 ---
 
-## Payment Architecture (v0)
+## Payment Architecture
+
+### v0 - Shared Custody (Current)
 
 **Scenario:** ZapMindr runs an _agentic wallet_ – a custodial LND node (or payment service) that temporarily holds stake deposits on behalf of users. A separate **Treasury** wallet tops-up ZapMindr so it can pay out rewards.
 
@@ -52,6 +54,71 @@ sequenceDiagram
     end
 
     Agentic-->>Relays: Zap receipt 9735
+```
+
+### v1 - HODL Invoice Integration (Next)
+
+**Scenario:** Non-custodial escrow using Lightning HODL invoices. Funds are locked in HTLCs until habit completion or failure, with automatic refund capability.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ZapMindr
+    participant LN as Lightning Network
+    participant AI as AI/Oracle
+    participant Treasury
+
+    Note over User, Treasury: ZapMindr HODL Invoice Integration Flow
+
+    %% Habit Setup Phase
+    User->>ZapMindr: Create new habit (type, duration, stake amount)
+    ZapMindr->>LN: Generate HODL invoice (stake amount)
+    LN-->>ZapMindr: Return HODL invoice
+    ZapMindr-->>User: Display HODL invoice QR/string
+
+    %% Staking Phase
+    User->>LN: Pay HODL invoice (stake)
+    LN->>ZapMindr: Payment received (funds in escrow/pending HTLC)
+    ZapMindr-->>User: Confirm habit activated, stake escrowed
+
+    %% Daily Progress Loop
+    loop Daily Habit Tracking
+        User->>ZapMindr: Post habit update (text/photo/proof)
+        ZapMindr->>AI: Submit update for verification
+        AI->>AI: Analyze progress honesty
+        AI-->>ZapMindr: Return verification result (honest/dishonest)
+
+        alt Progress Verified as Honest
+            ZapMindr-->>User: Progress accepted ✅
+        else Progress Flagged as Dishonest
+            ZapMindr-->>User: Progress rejected ❌
+            Note over ZapMindr: Track failed attempts
+        end
+    end
+
+    %% Settlement Phase
+    Note over User, Treasury: End of Habit Period - Settlement Decision
+
+    alt Habit Successfully Completed
+        ZapMindr->>LN: Settle HODL invoice (release preimage)
+        LN->>User: Release escrowed stake to user
+        ZapMindr->>Treasury: Request reward payout
+        Treasury->>User: Send reward payment
+        ZapMindr-->>User: Habit completed! Stake + reward received ⚡
+
+    else Habit Failed (insufficient progress)
+        ZapMindr->>LN: Cancel HODL invoice
+        LN->>ZapMindr: Funds returned to ZapMindr
+        ZapMindr-->>User: Habit failed. Stake forfeited 💸
+        Note over ZapMindr: Forfeited stakes go to reward pool
+
+    else HODL Invoice Expires (timeout)
+        LN->>LN: Auto-cancel expired HTLC
+        LN->>User: Automatic refund to user
+        ZapMindr-->>User: Habit expired. Stake refunded
+    end
+
+    Note over User, Treasury: Non-custodial escrow complete
 ```
 
 ### Why shared-custody first?
