@@ -380,9 +380,9 @@ const SearchInterface = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="mt-4 text-center"
+                    className="mt-2 text-center"
                 >
-                    <p className="text-white/40 text-sm">
+                    <p className="text-white/40 text-[10px] md:text-sm">
                         💡 Connect your wallet for personalized search suggestions and AI chat
                     </p>
                 </motion.div>
