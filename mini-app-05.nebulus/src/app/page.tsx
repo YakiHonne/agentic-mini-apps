@@ -8,12 +8,16 @@ import ErrMessage from "@/components/err-message";
 import Navbar from "@/components/navbar";
 import SearchInterface from "@/components/search-interface";
 import PaymentModal from "@/components/payment-modal";
+import SolanaPaymentModal from "@/components/solana-payment-modal";
+import AIChatInterface from "@/components/ai-chat-interface";
+import { useWallet } from '@solana/wallet-adapter-react';
 import { toast } from "sonner";
 import { useCuratedEvents } from "@/lib/use-curated-events";
 import Loader from "@/components/ui/loader";
 import AIThinkingProcess from "@/components/ai-thinking-process-simple";
 import Events from "@/components/events";
 import DeepAnalysisResults from "@/components/deep-analysis-results";
+import Sidebar from "@/components/sidebar";
 
 export interface NostrPost {
   id: string;
@@ -32,6 +36,7 @@ export default function Home() {
   const setUser = useStore((state) => state.setUser);
   const hostOrigin = useStore((state) => state.origin);
   const setHostOrigin = useStore((state) => state.setOrigin);
+  const { publicKey, connected } = useWallet();
 
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -40,6 +45,7 @@ export default function Home() {
   const [pendingQuery, setPendingQuery] = useState("");
   const [currentSearchType, setCurrentSearchType] = useState<'search' | 'deep-analysis'>('search');
   const [lastQuery, setLastQuery] = useState("");
+  const [showAIChat, setShowAIChat] = useState(false);
 
   const { mutate: fetchCuratedEvents, isPending, data: events } = useCuratedEvents()
 
@@ -99,13 +105,13 @@ export default function Home() {
     }
   }
 
-  const handlePaymentSuccess = (paymentHash: string) => {
+  const handlePaymentSuccess = (paymentSignature: string) => {
     if (pendingQuery) {
       setLastQuery(pendingQuery);
       fetchCuratedEvents({ 
         topic: pendingQuery, 
         type: 'deep-analysis',
-        paymentHash 
+        paymentSignature 
       });
       setPendingQuery("");
     }
@@ -124,11 +130,12 @@ export default function Home() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col flex-1 min-h-[80vh] bg-gradient-to-br from-background via-background to-primary/5 relative"
+      className="flex flex-col flex-1"
     >
       <Navbar user={user} />
+      <Sidebar user={user} />
 
-      <div className="flex-1 p-4 py-5 mt-24 mb-40 max-w-4xl mx-auto">
+      <div className="flex-1 p-4 py-5 mt-24 mb-40 max-w-3xl mx-auto pb-40">
         {isPending ? (
           <AIThinkingProcess 
             type={currentSearchType} 
@@ -156,7 +163,7 @@ export default function Home() {
         )}
       </div>
 
-      <PaymentModal 
+      <SolanaPaymentModal 
         isOpen={showPaymentModal}
         onClose={() => {
           setShowPaymentModal(false);
@@ -164,17 +171,27 @@ export default function Home() {
         }}
         onPaymentSuccess={handlePaymentSuccess}
         query={pendingQuery}
-        amountSats={210}
       />
 
       <div className="fixed bottom-0 left-0 right-0 p-4 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
           <SearchInterface 
             onSearch={(query, type) => handleSearch(query, type)}
+            onOpenChat={() => setShowAIChat(true)}
             isLoading={isPending}
           />
         </div>
       </div>
+
+      {/* AI Chat Interface */}
+      <AIChatInterface 
+        isOpen={showAIChat}
+        onClose={() => setShowAIChat(false)}
+        onSearch={(query, type) => {
+          handleSearch(query, type);
+          setShowAIChat(false); // Close chat when performing search
+        }}
+      />
     </motion.div>
   );
 }

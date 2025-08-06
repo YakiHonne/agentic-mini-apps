@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SolanaWalletProvider } from "@/components/solana-wallet-provider";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import QueryProvider from "@/components/query-provider";
@@ -25,8 +26,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={cn(inter.className, 'antialiased')}
+        className={cn(inter.className, 'antialiased', 'bg-gradient-to-tr from-black via-fuchsia-950 to-black min-h-screen relative')}
         suppressHydrationWarning
+        
       >
         <ThemeProvider
           attribute="class"
@@ -34,9 +36,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <QueryProvider>
-            {children}
-          </QueryProvider>
+          <SolanaWalletProvider>
+            <QueryProvider>
+              {children}
+            </QueryProvider>
+          </SolanaWalletProvider>
         </ThemeProvider>
 
         <Toaster

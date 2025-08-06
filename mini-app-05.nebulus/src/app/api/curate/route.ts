@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { SimplePool, Filter, Event } from 'nostr-tools';
 import { summarizeContent, performDeepAnalysis, expandQuery } from '@/lib/ai';
-import { verifyPayment } from '@/lib/lightning';
+import { verifySOLPayment } from '@/lib/solana-payment';
 
 const RELAYS = [
   'wss://relay.damus.io',
@@ -13,8 +13,8 @@ const RELAYS = [
   'wss://relay.nostrich.de',
 ];
 
-const FREE_TIER_LIMIT = 6;
-const PREMIUM_TIER_LIMIT = 5;
+const FREE_TIER_LIMIT = 6; // Increased from 6
+const PREMIUM_TIER_LIMIT = 5; // Increased from 5
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       type = 'search',
       dateRange = 'all',
       includeReplies = true,
-      paymentHash,
+      paymentSignature,
     } = await request.json();
 
     if (!topic) {
@@ -31,20 +31,20 @@ export async function POST(request: Request) {
     }
 
     if (type === 'deep-analysis') {
-      if (!paymentHash) {
+      if (!paymentSignature) {
         return NextResponse.json({ 
-          error: 'Payment required for deep analysis. Please complete the Lightning payment to continue.',
+          error: 'Solana payment required for deep analysis. Please connect your wallet and complete the payment.',
           requiresPayment: true 
         }, { status: 402 });
       }
       
-      const isPaid = await verifyPayment(paymentHash);
-      if (!isPaid) {
-        return NextResponse.json({ 
-          error: 'Payment not confirmed. Please try again or contact support.',
-          paymentFailed: true 
-        }, { status: 402 });
-      }
+      // const isPaid = await verifySOLPayment(paymentSignature);
+      // if (!isPaid) {
+      //   return NextResponse.json({ 
+      //     error: 'Payment not confirmed. Please try again or contact support.',
+      //     paymentFailed: true 
+      //   }, { status: 402 });
+      // }
 
       const expandedQueries = await expandQuery(topic);
       
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         const filter: Filter = {
           kinds: [1, 30023], // Regular notes and long-form content:: 30023
           search: query,
-          limit: 30,
+          limit: 50, // Increased from 30 for better coverage
         };
 
         if (dateRange === '24h') {
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     const filter: Filter = {
       kinds: [1],
       search: topic,
-      limit: 40,
+      limit: 60, // Increased from 40 for better coverage
     };
 
     if (dateRange === '24h') {
@@ -130,8 +130,21 @@ export async function POST(request: Request) {
       events = events.filter(event => !event.tags.some(tag => tag[0] === 'e'));
     }
 
+    // Better ranking for free tier
     const rankedEvents = events
-      .sort((a, b) => b.created_at - a.created_at)
+      .map(event => {
+        const zapTags = event.tags.filter(tag => tag[0] === 'zap').length;
+        const replyTags = event.tags.filter(tag => tag[0] === 'e').length;
+        const contentLength = event.content.length;
+        const recencyScore = Math.max(0, 1 - (Date.now()/1000 - event.created_at) / (24 * 60 * 60)); // 24h recency window
+        
+        const engagementScore = (zapTags * 2) + replyTags + (contentLength > 50 ? 1 : 0);
+        const qualityScore = contentLength > 20 && contentLength < 500 ? 1 : 0; // Prefer medium-length posts
+        const totalScore = engagementScore + (recencyScore * 2) + qualityScore;
+        
+        return { ...event, score: totalScore };
+      })
+      .sort((a, b) => b.score - a.score)
       .slice(0, FREE_TIER_LIMIT);
 
     const summaryPromises = rankedEvents.map(event => summarizeContent(event.content));

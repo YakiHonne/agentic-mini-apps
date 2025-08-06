@@ -51,9 +51,9 @@ function cleanNoteContent(content: string): string {
 }
 
 /**
- * Summarizes a piece of text using the OpenAI API.
+ * Summarizes a piece of text using the OpenAI API with enhanced quality.
  * @param content The text content of a single Nostr note.
- * @returns An AI-generated one-sentence summary.
+ * @returns An AI-generated comprehensive summary.
  */
 export async function summarizeContent(content: string): Promise<string> {
   const cleanedContent = cleanNoteContent(content);
@@ -68,15 +68,24 @@ export async function summarizeContent(content: string): Promise<string> {
       messages: [
         {
           role: "system",
-          content: "You are a highly skilled AI assistant called Nebulus. Your task is to summarize the following social media post into a single, concise, and neutral sentence. Do not add any commentary or your own opinions."
+          content: `You are Nebulus, an expert AI assistant specializing in Nostr and cryptocurrency content analysis. 
+
+Your task is to create insightful, engaging summaries that:
+- Capture the core message and key insights
+- Identify important technical details or market implications
+- Highlight unique perspectives or valuable information
+- Use clear, accessible language
+- Maintain objectivity while being engaging
+
+Format: Provide a 1-2 sentence summary that gives readers immediate value and context.`
         },
         {
           role: "user",
-          content: cleanedContent
+          content: `Summarize this Nostr post with focus on extracting maximum value and insight:\n\n${cleanedContent}`
         }
       ],
-      temperature: 0.2,
-      max_tokens: 200,
+      temperature: 0.3,
+      max_tokens: 250,
     }));
 
     const summary = completion.choices[0]?.message?.content?.trim() || "Could not generate summary.";
@@ -84,7 +93,7 @@ export async function summarizeContent(content: string): Promise<string> {
 
   } catch (error) {
     console.error("Error calling OpenAI API:", error);
-    return "AI summarization failed.";
+    return "AI summarization temporarily unavailable.";
   }
 }
 
@@ -100,26 +109,176 @@ export async function expandQuery(topic: string): Promise<string[]> {
       messages: [
         {
           role: "system",
-          content: "You are Nebulus, an expert research assistant. Given a search topic, generate 4-6 related search terms that would help find comprehensive content about the topic. Return only the terms, separated by commas, no explanations."
+          content: `You are Nebulus, an expert research assistant with deep knowledge of cryptocurrency, blockchain, Nostr protocol, and decentralized technologies.
+
+Given a search topic, generate 4-6 strategically related search terms that would help find comprehensive, high-quality content. Focus on:
+- Technical terminology and variations
+- Related concepts and protocols
+- Market and adoption aspects
+- Developer and community perspectives
+- Current events and developments
+
+Return only the terms separated by commas, no explanations.`
         },
         {
           role: "user",
-          content: `Expand this search topic into related terms: "${topic}"`
+          content: `Generate comprehensive search terms for: "${topic}"`
         }
       ],
-      temperature: 0.3,
-      max_tokens: 100,
+      temperature: 0.4,
+      max_tokens: 150,
     }));
 
     const response = completion.choices[0]?.message?.content?.trim();
     if (!response) return [topic];
 
     const expandedTerms = response.split(',').map(term => term.trim()).filter(term => term.length > 0);
-    return [topic, ...expandedTerms].slice(0, 6);
+    return [topic, ...expandedTerms].slice(0, 8); // Increased from 6 to 8 for better coverage
 
   } catch (error) {
     console.error("Error expanding query:", error);
     return [topic];
+  }
+}
+
+/**
+ * Agentic AI Chat Assistant for Nostr and Crypto
+ * @param message User's message
+ * @param conversationHistory Previous conversation context
+ * @param userContext Optional user context (wallet, preferences, etc.)
+ * @returns AI response with actions and insights
+ */
+export async function agenticChatResponse(
+  message: string,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [],
+  userContext?: {
+    walletConnected?: boolean;
+    publicKey?: string;
+    recentSearches?: string[];
+    preferences?: any;
+  }
+): Promise<{
+  content: string;
+  actions?: Array<{
+    type: 'search' | 'analysis' | 'recommendation' | 'data_fetch';
+    payload: any;
+    description: string;
+  }>;
+  followUpQuestions?: string[];
+  confidence: number;
+}> {
+  try {
+    const systemPrompt = `You are Nebulus, an advanced AI assistant specializing in Nostr protocol, cryptocurrency, blockchain technology, and decentralized systems. You are built into a powerful Nostr search and analysis platform.
+
+Your capabilities include:
+- Real-time Nostr network analysis and insights
+- Cryptocurrency market analysis and trends
+- Technical protocol explanations (Bitcoin, Lightning, Nostr, Solana, etc.)
+- Community sentiment analysis
+- Developer resources and guidance
+- Privacy and security best practices
+- Decentralized application recommendations
+
+User Context:
+- Wallet Connected: ${userContext?.walletConnected ? 'Yes' : 'No'}
+- Recent Searches: ${userContext?.recentSearches?.join(', ') || 'None'}
+
+Guidelines:
+1. Provide accurate, actionable information
+2. Suggest specific searches or analyses when relevant
+3. Ask clarifying questions to better help the user
+4. Recommend premium features when they would add significant value
+5. Maintain a helpful, knowledgeable, but approachable tone
+6. Always consider the decentralized and privacy-focused nature of these technologies
+
+Respond with helpful insights and when appropriate, suggest actions the user can take within the platform.`;
+
+    const completion = await callWithRetry(() => openai.chat.completions.create({
+      model: "gemini-2.0-flash",
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        ...conversationHistory.slice(-10), // Keep last 10 messages for context
+        {
+          role: "user",
+          content: message
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 800,
+    }));
+
+    const response = completion.choices[0]?.message?.content?.trim() || "I'm having trouble processing that right now. Could you try rephrasing your question?";
+
+    // Analyze the response to suggest actions
+    const actions: Array<{
+      type: 'search' | 'analysis' | 'recommendation' | 'data_fetch';
+      payload: any;
+      description: string;
+    }> = [];
+
+    // Detect if user is asking about specific topics that could benefit from search
+    const searchKeywords = ['bitcoin', 'nostr', 'lightning', 'solana', 'ethereum', 'defi', 'nft', 'crypto', 'blockchain', 'protocol'];
+    const messageWords = message.toLowerCase().split(' ');
+    
+    for (const keyword of searchKeywords) {
+      if (messageWords.some(word => word.includes(keyword))) {
+        actions.push({
+          type: 'search',
+          payload: { query: keyword, type: 'search' },
+          description: `Search for recent ${keyword} discussions`
+        });
+        break; // Only suggest one search action
+      }
+    }
+
+    // Suggest analysis for market-related questions
+    if (message.toLowerCase().includes('market') || message.toLowerCase().includes('price') || message.toLowerCase().includes('trend')) {
+      actions.push({
+        type: 'analysis',
+        payload: { type: 'market_sentiment' },
+        description: 'Analyze current market sentiment'
+      });
+    }
+
+    // Generate follow-up questions
+    const followUpCompletion = await callWithRetry(() => openai.chat.completions.create({
+      model: "gemini-2.0-flash",
+      messages: [
+        {
+          role: "system",
+          content: "Based on the user's question and the AI response, suggest 2-3 relevant follow-up questions they might want to ask. Return only the questions, separated by | character."
+        },
+        {
+          role: "user",
+          content: `User asked: "${message}"\nAI responded: "${response}"\n\nSuggest follow-ups:`
+        }
+      ],
+      temperature: 0.6,
+      max_tokens: 150,
+    }));
+
+    const followUpQuestions = followUpCompletion.choices[0]?.message?.content?.trim()
+      ?.split('|')
+      .map(q => q.trim())
+      .filter(q => q.length > 0)
+      .slice(0, 3) || [];
+
+    return {
+      content: response,
+      actions: actions.slice(0, 2), // Limit to 2 actions max
+      followUpQuestions,
+      confidence: 0.85
+    };
+
+  } catch (error) {
+    console.error("Error in agentic chat response:", error);
+    return {
+      content: "I'm experiencing some technical difficulties right now. Please try again in a moment, or feel free to explore the Nostr search functionality while I get back online! 🛠️",
+      confidence: 0.1
+    };
   }
 }
 

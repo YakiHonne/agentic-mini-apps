@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, CloudLightning, Zap, Star } from 'lucide-react'
+import { Menu, X, CloudLightning, Zap, Star, Wallet } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { User } from '@/lib/store'
 
 interface NavbarProps {
@@ -13,6 +15,7 @@ interface NavbarProps {
 const Navbar = ({ user }: NavbarProps) => {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { connected, publicKey } = useWallet()
   
   const getInitials = (fullName: string) => {
     return fullName
@@ -70,6 +73,11 @@ const Navbar = ({ user }: NavbarProps) => {
             </motion.div>
           
           <div className="hidden md:flex items-center gap-3">
+            {/* Solana Wallet Button */}
+            <div className="flex items-center">
+              <WalletMultiButton className="!bg-gradient-to-r !from-orange-500 !to-orange-600 !border-0 !text-white !text-sm !px-3 !py-1.5 !rounded-lg hover:!from-orange-600 hover:!to-orange-700 !transition-all" />
+            </div>
+            
             {/* Navigation items */}
             <div className="flex items-center gap-2">
               <motion.button
@@ -150,6 +158,11 @@ const Navbar = ({ user }: NavbarProps) => {
             >
               {user ? (
               <div className="flex flex-col gap-2">
+                {/* Solana Wallet Section */}
+                <div className="mb-2">
+                  <WalletMultiButton className="!w-full !bg-gradient-to-r !from-orange-500 !to-orange-600 !border-0 !text-white !text-sm !py-2 !rounded-lg hover:!from-orange-600 hover:!to-orange-700" />
+                </div>
+                
                 <motion.div 
                   className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10"
                   whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
@@ -189,6 +202,11 @@ const Navbar = ({ user }: NavbarProps) => {
               </div>
             ) : (
               <div className="flex flex-col gap-2">
+                {/* Solana Wallet Section */}
+                <div className="mb-2">
+                  <WalletMultiButton className="!w-full !bg-gradient-to-r !from-orange-500 !to-orange-600 !border-0 !text-white !text-sm !py-2 !rounded-lg hover:!from-orange-600 hover:!to-orange-700" />
+                </div>
+                
                 <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 text-white text-sm font-medium hover:from-purple-600 hover:to-blue-600 transition-all">
                   Sign In
                 </button>
