@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { SimplePool, Filter, Event } from 'nostr-tools';
 import { summarizeContent, performDeepAnalysis, expandQuery } from '@/lib/ai';
 import { verifySOLPayment } from '@/lib/solana-payment';
+import { verifyPayment } from '@/lib/lightning';
 
 const RELAYS = [
   'wss://relay.damus.io',
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
       dateRange = 'all',
       includeReplies = true,
       paymentSignature,
+      paymentMethod = 'solana',
     } = await request.json();
 
     if (!topic) {
@@ -33,18 +35,25 @@ export async function POST(request: Request) {
     if (type === 'deep-analysis') {
       if (!paymentSignature) {
         return NextResponse.json({ 
-          error: 'Solana payment required for deep analysis. Please connect your wallet and complete the payment.',
+          error: 'Payment required for deep analysis. Please choose Solana or Lightning payment method.',
           requiresPayment: true 
         }, { status: 402 });
       }
       
-      // const isPaid = await verifySOLPayment(paymentSignature);
-      // if (!isPaid) {
-      //   return NextResponse.json({ 
-      //     error: 'Payment not confirmed. Please try again or contact support.',
-      //     paymentFailed: true 
-      //   }, { status: 402 });
-      // }
+      // Verify payment based on method
+      let isPaid = false;
+      if (paymentMethod === 'lightning') {
+        isPaid = await verifyPayment(paymentSignature);
+      } else {
+        isPaid = await verifySOLPayment(paymentSignature);
+      }
+      
+      if (!isPaid) {
+        return NextResponse.json({ 
+          error: `${paymentMethod} payment not confirmed. Please try again or contact support.`,
+          paymentFailed: true 
+        }, { status: 402 });
+      }
 
       const expandedQueries = await expandQuery(topic);
       

@@ -9,6 +9,7 @@ import Navbar from "@/components/navbar";
 import SearchInterface from "@/components/search-interface";
 import PaymentModal from "@/components/payment-modal";
 import SolanaPaymentModal from "@/components/solana-payment-modal";
+import PaymentMethodSelector from "@/components/payment-method-selector";
 import AIChatInterface from "@/components/ai-chat-interface";
 import { useWallet } from '@solana/wallet-adapter-react';
 import { toast } from "sonner";
@@ -105,18 +106,19 @@ export default function Home() {
     }
   }
 
-  const handlePaymentSuccess = (paymentSignature: string) => {
+  const handlePaymentSuccess = (paymentSignature: string, method: 'solana' | 'lightning') => {
     if (pendingQuery) {
       setLastQuery(pendingQuery);
       fetchCuratedEvents({ 
         topic: pendingQuery, 
         type: 'deep-analysis',
-        paymentSignature 
+        paymentSignature,
+        paymentMethod: method
       });
       setPendingQuery("");
     }
     setShowPaymentModal(false);
-    toast.success("Payment confirmed! Starting Deep Analysis...");
+    toast.success(`Payment confirmed via ${method}! Starting Deep Analysis...`);
   }
 
   if (errMsg) {
@@ -163,14 +165,16 @@ export default function Home() {
         )}
       </div>
 
-      <SolanaPaymentModal 
+      <PaymentMethodSelector 
         isOpen={showPaymentModal}
         onClose={() => {
           setShowPaymentModal(false);
           setPendingQuery("");
         }}
         onPaymentSuccess={handlePaymentSuccess}
-        query={pendingQuery}
+        amount={0.001}
+        description={`Deep Analysis: ${pendingQuery}`}
+        title="Premium Deep Analysis"
       />
 
       <div className="fixed bottom-0 left-0 right-0 p-4 backdrop-blur-sm">

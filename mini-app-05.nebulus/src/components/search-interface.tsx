@@ -187,7 +187,7 @@ const SearchInterface = ({
                                 }`}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                title="Premium AI-powered analysis with multi-relay search, sentiment analysis, and insights (210 sats)"
+                                title="Premium AI-powered analysis with multi-relay search, sentiment analysis, and insights (0.001 SOL or ~210 sats)"
                             >
                                 <Sparkles className="w-3 h-3" />
                                 <AnimatePresence>
@@ -209,7 +209,7 @@ const SearchInterface = ({
                                         animate={{ scale: 1, opacity: 1 }}
                                         className="text-xs bg-gradient-to-r from-purple-500 to-blue-500 text-white px-1 py-0.5 rounded-full ml-1"
                                     >
-                                        210⚡
+                                        0.001 SOL
                                     </motion.span>
                                 )}
                             </motion.button>

@@ -46,6 +46,45 @@ export async function createPaymentTransaction(userWallet: PublicKey): Promise<P
 }
 
 /**
+ * Complete payment flow: creates transaction, signs it, and sends it
+ */
+export async function payWithSOL(
+  userWallet: PublicKey,
+  amount: number,
+  signTransaction: (transaction: Transaction) => Promise<Transaction>,
+  sendTransaction: (transaction: Transaction, connection: Connection) => Promise<string>
+): Promise<string> {
+  try {
+    // Create transaction
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: userWallet,
+        toPubkey: PAYMENT_WALLET,
+        lamports: amount * LAMPORTS_PER_SOL,
+      })
+    );
+    
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = userWallet;
+    
+    // Sign transaction
+    const signedTransaction = await signTransaction(transaction);
+    
+    // Send transaction
+    const signature = await sendTransaction(signedTransaction, connection);
+    
+    // Wait for confirmation
+    await connection.confirmTransaction(signature, 'confirmed');
+    
+    return signature;
+  } catch (error) {
+    console.error('Payment failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Verifies a Solana payment using the transaction signature
  */
 export async function verifySOLPayment(signature: string): Promise<boolean> {

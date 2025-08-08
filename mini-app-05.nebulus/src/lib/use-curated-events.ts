@@ -5,17 +5,23 @@ import { useMutation } from '@tanstack/react-query'
 export const useCuratedEvents = () => {
     return useMutation({
         mutationKey: ['events'],
-        mutationFn: async ({ topic, type = "search", paymentSignature }: { 
+        mutationFn: async ({ 
+            topic, 
+            type = "search", 
+            paymentSignature,
+            paymentMethod = 'solana'
+        }: { 
             topic: string; 
             type?: string; 
-            paymentSignature?: string; 
+            paymentSignature?: string;
+            paymentMethod?: 'solana' | 'lightning';
         }) => {
             const response = await fetch('/api/curate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ topic, type, paymentSignature }),
+                body: JSON.stringify({ topic, type, paymentSignature, paymentMethod }),
             });
 
             if (!response.ok) {

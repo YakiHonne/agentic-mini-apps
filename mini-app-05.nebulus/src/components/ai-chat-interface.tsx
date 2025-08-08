@@ -24,6 +24,7 @@ import {
 import { toast } from 'sonner';
 import { useWallet } from '@solana/wallet-adapter-react';
 import SolanaPaymentModal from './solana-payment-modal';
+import PaymentMethodSelector from './payment-method-selector';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -170,9 +171,9 @@ export default function AIChatInterface({ isOpen, onClose, onSearch }: AIChatInt
     }
   };
 
-  const handlePaymentSuccess = (signature: string) => {
+  const handlePaymentSuccess = (signature: string, method: 'solana' | 'lightning') => {
     setShowPaymentModal(false);
-    toast.success('Payment confirmed! Premium chat activated.');
+    toast.success(`Payment confirmed via ${method}! Premium chat activated.`);
     handleSendMessage(signature);
   };
 
@@ -675,11 +676,13 @@ export default function AIChatInterface({ isOpen, onClose, onSearch }: AIChatInt
 
           {/* Payment Modal */}
           {showPaymentModal && (
-            <SolanaPaymentModal
+            <PaymentMethodSelector
               isOpen={showPaymentModal}
               onClose={() => setShowPaymentModal(false)}
               onPaymentSuccess={handlePaymentSuccess}
-              query='AI chat session'
+              amount={0.001}
+              description="Premium AI Chat Session"
+              title="Upgrade to Premium Chat"
             />
           )}
         </motion.div>

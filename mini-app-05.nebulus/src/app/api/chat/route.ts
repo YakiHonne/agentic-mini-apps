@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { agenticChatResponse } from '@/lib/ai';
 import { verifySOLPayment } from '@/lib/solana-payment';
+import { verifyPayment } from '@/lib/lightning';
 
 const FREE_MESSAGES_PER_DAY = 10;
 const PREMIUM_MESSAGES_PER_SESSION = 50;
@@ -40,7 +41,8 @@ export async function POST(request: Request) {
       message,
       conversationHistory = [],
       userContext = {},
-      paymentSignature
+      paymentSignature,
+      paymentMethod = 'solana'
     } = await request.json();
 
     if (!message?.trim()) {
@@ -52,10 +54,16 @@ export async function POST(request: Request) {
     let isValidPayment = true;
 
     if (isPremium) {
-      isValidPayment = await verifySOLPayment(paymentSignature);
+      // Verify payment based on method
+      if (paymentMethod === 'lightning') {
+        isValidPayment = await verifyPayment(paymentSignature);
+      } else {
+        isValidPayment = await verifySOLPayment(paymentSignature);
+      }
+      
       if (!isValidPayment) {
         return NextResponse.json({ 
-          error: 'Payment verification failed. Please try again.',
+          error: `${paymentMethod} payment verification failed. Please try again.`,
           requiresPayment: true 
         }, { status: 402 });
       }
@@ -67,7 +75,7 @@ export async function POST(request: Request) {
     if (!checkMessageLimit(userKey, isPremium && isValidPayment)) {
       const limitMessage = isPremium 
         ? 'Premium session message limit reached. Please start a new session.'
-        : 'Daily message limit reached. Connect your wallet and pay with SOL for premium unlimited chat!';
+        : 'Daily message limit reached. Connect your wallet and pay with SOL or Lightning for premium unlimited chat!';
       
       return NextResponse.json({ 
         error: limitMessage,

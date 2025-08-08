@@ -51,7 +51,7 @@ export default function SolanaPaymentModal({
       toast.success('Transaction sent! Confirming...');
       
       // Wait for confirmation
-      // await connection.confirmTransaction(signature, 'confirmed');
+      await connection.confirmTransaction(signature, 'confirmed');
       
       onPaymentSuccess(signature);
       toast.success('Payment confirmed! Starting Deep Analysis...');
