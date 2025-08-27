@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <title>Nostr App Interface</title>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+   <link rel="stylesheet" href="yaki-CSS1/nostr-Interface.css">
+  </head>
+  <body>
+    <div class="main-div">
+      <div class="first-div">
+        <img src="images/Nostr.png" class="nostr-image">
+        <div class="first-text">Get Started With Us</div>
+        <div class="second-text">complete these easy steps to register</div>
+        <div class="second-text2">your account</div>
+        <div class="third-text"><span class="third-text2">1</span> Sign up your account </div>
+        <div class="fourth-text"><span class="fourth-text2">2</span> Wait for verification</div>
+        <div class="fifth-text"><span class="fifth-text2">3</span>Set up your profile</div>
+      </div>
+
+
+      <div class="second-div">
+        <div class="sign-up">Sign Up Account</div>
+        <div class="enter-data">Enter your data to create your account</div>
+        <div class="two-divs">
+          <div class="f-Name">
+            First Name
+          </div>
+          <div class="l-Name">
+            Last Name
+          </div>
+        </div>
+        <div class="two-inputs">
+          <input type="text" class="f-Name-input" id="f-Name">
+          
+          <input type="text" class="l-Name-input">
+        </div>
+
+        <form id="signupForm">
+        <div class="email-text">Email</div>
+          <input type="email" class="email-text-input" id="email">
+          <div>
+            <small id="emailMessage" class="message"></small>
+          </div>
+          
+          <div class="password-text">password</div>
+          <div class="absolute">
+            <input type="password" placeholder="Enter your passcode" class="password-text-input" id="password">
+            <img src="icons/eye-opened.svg" class="eye-solid" id="togglePassword">
+          </div>
+         
+          <progress id="strengthBar" max="100" value="0"></progress>
+          <div class="instruction-text">Must be at least 8 characters</div>
+        </form>
+        
+          <div class="sign-up-div js-sign-up">Sign Up</div>
+        
+           
+          <div class="log-in-text">already have an account? <a href="nostr-login.html" class="log-in">Log in</a> </div>
+      </div>
+    </div>
+
+    <script type="module" src="Nostr-JavaScriptes/nostr-sign-in.js"></script>
+  </body>
+</html>
