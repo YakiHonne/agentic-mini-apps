@@ -1,0 +1,15 @@
+{
+  "pubkey": "3dbea9e02a7751428506ebf07e6b317c74d8a5b5ef568e9c11ca86b03becbada",
+  "widget": {
+    "title": "Yakisum",
+    "appUrl": "https://yakisum.vercel.app/",
+    "iconUrl": "https://image.nostr.build/cd60a34a274c64119e8f1dfc9ca2cc8ea759ae71236bae4399f30e9a41f85605.png",
+    "imageUrl": "https://image.nostr.build/cd60a34a274c64119e8f1dfc9ca2cc8ea759ae71236bae4399f30e9a41f85605.png",
+    "buttonTitle": "Yakisum Summarizer",
+    "tags": [
+      "summarizer",
+      "yakihonne",
+      "ai"
+    ]
+  }
+}
